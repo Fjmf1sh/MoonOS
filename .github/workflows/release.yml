@@ -43,13 +43,15 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (with submodules)
+      # Deliberately DON'T fetch submodules here: prepare-fork.sh clones
+      # moonlight-qt fresh at its pinned public commit, so CI is immune to a
+      # stray/private submodule pointer ("not our ref" fetch failures).
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
+          submodules: false
 
-      - name: Prepare the Moonlight fork (copy Moon Shell in + patch)
+      - name: Prepare the Moonlight fork (clone upstream + copy Moon Shell + patch)
         run: bash scripts/prepare-fork.sh
 
       - name: Work out the version

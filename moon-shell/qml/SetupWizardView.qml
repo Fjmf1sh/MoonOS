@@ -43,6 +43,14 @@ FocusScope {
         nextBtn.forceActiveFocus()
     }
 
+    // Auto-onboard controllers for the entire wizard: from the very first
+    // screen we power on Bluetooth, reconnect known pads, and auto-pair any
+    // new controller held in pairing mode. This solves the chicken-and-egg
+    // of needing input to set up input — the user just holds the pair button.
+    // (USB controllers work immediately via SDL and need nothing here.)
+    Component.onCompleted: BluetoothService.startControllerAutoConnect()
+    Component.onDestruction: BluetoothService.stopControllerAutoConnect()
+
     Column {
         anchors.centerIn: parent
         width: parent.width * 0.62
@@ -103,25 +111,54 @@ FocusScope {
                 anchors.centerIn: parent
                 width: parent.width
                 spacing: Theme.pad
+
+                readonly property bool haveController: BluetoothService.connectedControllerCount > 0
+
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "🎮"
+                    text: parent.haveController ? "🎮" : "🔍"
                     font.pixelSize: 90
                 }
                 Text {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
-                    text: BluetoothService.connectedControllerCount > 0
+                    text: parent.haveController
                           ? qsTr("Controller connected — you're good to go!")
-                          : qsTr("You can drive Moon OS with a controller, a keyboard, or your TV remote (HDMI-CEC).")
-                    color: BluetoothService.connectedControllerCount > 0 ? Theme.success : Theme.textDim
+                          : qsTr("Hold your controller's pair button until it flashes.\nMoon OS is searching and will connect it automatically.")
+                    color: parent.haveController ? Theme.success : Theme.text
                     font.pixelSize: Theme.fontBody
                     wrapMode: Text.Wrap
                 }
+
+                // Live search indicator + what's been found so far
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Theme.padSmall
+                    visible: !parent.haveController
+                    MoonSpinner { width: 34; height: 34; anchors.verticalCenter: parent.verticalCenter }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: BluetoothService.discovering ? qsTr("Searching for controllers…")
+                                                           : qsTr("Starting Bluetooth…")
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                    }
+                }
+
+                Text {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    text: qsTr("A USB controller, keyboard, or your TV remote (HDMI-CEC) also works — no pairing needed.")
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                    wrapMode: Text.Wrap
+                }
+
                 FocusButton {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 440; height: 90
-                    label: qsTr("Pair a Bluetooth controller")
+                    label: qsTr("Pair manually")
+                    sublabel: qsTr("If it doesn't connect on its own")
                     onActivated: window.pushView("qrc:/moon/qml/BluetoothSettingsView.qml")
                     KeyNavigation.down: nextBtn
                 }

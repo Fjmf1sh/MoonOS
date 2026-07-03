@@ -377,4 +377,58 @@ void BluetoothService::reconnectControllers()
     }
 }
 
+void BluetoothService::startControllerAutoConnect()
+{
+    m_autoPairAttempted.clear();
+
+    if (!m_adapterPath.isEmpty() && !m_powered)
+        setPowered(true);
+
+    reconnectControllers();
+    startScan();
+
+    if (!m_autoConnectTimer.isActive()) {
+        connect(&m_autoConnectTimer, &QTimer::timeout,
+                this, &BluetoothService::autoConnectTick, Qt::UniqueConnection);
+        m_autoConnectTimer.setInterval(2500);
+        m_autoConnectTimer.start();
+    }
+}
+
+void BluetoothService::stopControllerAutoConnect()
+{
+    m_autoConnectTimer.stop();
+    stopScan();
+}
+
+void BluetoothService::autoConnectTick()
+{
+    // Keep known controllers reconnecting, and auto-pair any freshly
+    // discovered controller sitting in pairing mode. We only ever auto-pair
+    // devices that look like game controllers, and only once each, so a
+    // neighbour's phone won't get grabbed and a failed attempt won't loop.
+    for (const auto& v : m_devices) {
+        const auto m = v.toMap();
+        if (!m[QStringLiteral("isController")].toBool())
+            continue;
+
+        const QString path = m[QStringLiteral("path")].toString();
+        const bool paired = m[QStringLiteral("paired")].toBool();
+        const bool connected = m[QStringLiteral("connected")].toBool();
+
+        if (connected)
+            continue;
+
+        if (paired) {
+            // Known controller that dropped — nudge it back.
+            QDBusInterface device(kBluez, path, kDeviceIface, QDBusConnection::systemBus());
+            device.asyncCall(QStringLiteral("Connect"));
+        }
+        else if (!m_autoPairAttempted.contains(path)) {
+            m_autoPairAttempted.insert(path);
+            pairDevice(path);
+        }
+    }
+}
+
 #include "bluetoothservice.moc"

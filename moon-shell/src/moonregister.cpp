@@ -35,6 +35,11 @@ void registerTypes(QQmlApplicationEngine* engine)
     // Bring the TV out of standby and claim the active HDMI input on boot.
     if (settings->cecEnabled())
         cec->powerOnTv();
+
+    // Nudge already-paired controllers to reconnect at startup so they work
+    // the moment the home screen appears (the wizard handles first-time
+    // pairing; this covers every boot after that).
+    bluetooth->reconnectControllers();
 }
 
 } // namespace Moon

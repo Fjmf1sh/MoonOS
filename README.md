@@ -22,12 +22,35 @@ power on → Moon OS splash → Moon Shell → pick a game → play
 | **Moon services** | Native D-Bus clients for NetworkManager (Wi-Fi), BlueZ (controllers), logind/systemd (power, updates), plus libcec (TV remote) |
 | **Moon OS image** | pi-gen–built Raspberry Pi OS Lite (bookworm, arm64) that boots straight into the shell |
 
+### Input & feel
+
+Every screen works with a **controller**, a **keyboard**, a **mouse**, or a
+**TV remote (HDMI-CEC)** — pick whichever is plugged in, or mix them:
+
+- **Controller** — D-pad/stick for spatial navigation (A select, B back,
+  X context actions), reused straight from moonlight-qt's own SDL gamepad
+  bridge.
+- **Keyboard** — arrow keys + Enter/Escape navigate the shell; typing into
+  any text field (Wi-Fi password, IP address, search) works directly, no
+  on-screen keyboard required.
+- **Mouse** — hovering a card gives it focus (Big-Picture style), clicking
+  activates it, right-click on a PC card opens its options, and sliders are
+  click/drag. The pointer is never hidden, so it shows up the moment a mouse
+  is attached.
+- **On-screen keyboard** — appears automatically for every text field so a
+  physical keyboard is never required; drivable by controller, remote, mouse,
+  *or* a physical keyboard typing directly into it. Passwords mask by default
+  with a reveal toggle; clipboard paste is available only in developer mode.
+- **Background** — a twinkling starfield with occasional shooting stars, and
+  a moon that drifts to a new position each time you move to a different
+  screen.
+
 ### Why these technical choices
 
 - **Fork of Moonlight Qt, not a CLI wrapper.** Moon Shell links the actual
   moonlight-qt backend (`ComputerManager`, `NvPairingManager`, `Session`,
   mDNS discovery, the FFmpeg/V4L2/DRM video path). The fork surface is a
-  17-line patch ([moon-shell/fork/0001-moon-os-fork.patch](moon-shell/fork/0001-moon-os-fork.patch))
+  small patch ([moon-shell/fork/0001-moon-os-fork.patch](moon-shell/fork/0001-moon-os-fork.patch))
   plus a self-contained `app/moon/` directory — trivial to rebase when
   upstream moves. Nothing shells out to `moonlight pair/stream/list`.
 - **Qt 6 QML on EGLFS/KMS.** moonlight-qt is already a Qt app with first-class
@@ -176,30 +199,37 @@ option is a signed apt repository or A/B image updates — see the roadmap.
 
 ## Project status & known limitations
 
-**Status: code-complete, pre-hardware-validation.** Every feature above is
-fully implemented (no stubs, no fake data), but this tree has not yet been
-burned to an SD card and soak-tested on real Pi 4/5 hardware. Expect the
-first image build to surface integration issues — that's what
-[docs/TESTING.md](docs/TESTING.md) is for. Known limitations:
+**Status: under active hardware validation on Raspberry Pi 4.** This is no
+longer a paper design — it has been flashed and booted on real hardware, and
+the boot chain, input stack, and font rendering have each already gone
+through a real bug → fix → reflash cycle (see docs/TROUBLESHOOTING.md for the
+specifics: a stripped runtime library, dead gamepad/keyboard focus, missing
+icon fonts). Pi 5 and full soak testing per docs/TESTING.md are still
+outstanding. Known limitations:
 
-- The fork pins moonlight-qt at the submodule commit; rebasing to newer
-  upstream may need a patch refresh (see docs/ARCHITECTURE.md).
+- The fork pins moonlight-qt at a specific public commit; rebasing to newer
+  upstream needs a patch refresh (see docs/ARCHITECTURE.md, "Updating the
+  fork"). Never let that commit become a private/unpushed one — see
+  docs/ARCHITECTURE.md and AGENTS.md for why that broke CI once already.
 - FFmpeg runtime package names in `00-packages` are bookworm-specific
   (`libavcodec59` etc.); a trixie rebase must update them.
 - Wi-Fi regulatory domain defaults to US (set in the image); other regions
   need developer mode for now — a wizard region step is on the roadmap.
 - Recent games are keyed by host *name* (upstream's model doesn't expose
   UUIDs to QML); renaming a PC orphans its recent-games entries.
-- `Update` upgrades OS packages; shipping Moon Shell updates through it
-  needs a Moon OS apt repo (roadmap).
+- Moon Shell self-updates ship via GitHub Releases (see "Updates" above),
+  not an apt repo — no automatic rollback if a published binary is bad; a
+  signed apt repo with A/B rollback is on the roadmap for fleet-scale use.
 - HDR streaming depends on upstream moonlight-qt's Pi HDR support and the
   TV; the toggle greys out when unsupported.
 - No PIN/parental lock, no multiple user profiles.
+- **Licensing needs a decision** — see "License" below.
 
 ## Roadmap
 
 - Wizard language/region step (locale + Wi-Fi country)
-- Moon OS apt repository for shell self-updates + A/B rollback
+- Signed apt repository for shell self-updates + A/B rollback (the current
+  GitHub-Releases updater is one-way with no automatic revert)
 - Box-art caching and richer library metadata
 - Wake-on-LAN button on offline host cards (backend already supports it)
 - CEC standby → console sleep, and TV power-off on console shutdown
@@ -208,20 +238,46 @@ first image build to surface integration issues — that's what
 ## Repository layout
 
 ```
-moon-shell/       Moon Shell UI + services (becomes app/moon/ in the fork)
-  src/            C++: D-Bus services, CEC, settings, registration
-  qml/            The whole 10-foot UI
-  fork/           The patch applied to moonlight-qt
+moon-shell/            Moon Shell UI + services (becomes app/moon/ in the fork)
+  src/                 C++: D-Bus services, CEC, settings, registration
+  qml/                 The whole 10-foot UI (screens, focus widgets, SpaceBackdrop)
+  fork/                The patch applied to moonlight-qt
 third_party/
-  moonlight-qt/   Upstream, pinned as a submodule (patched at build time)
-os-image/         pi-gen stage, rootfs overlay, image build script
-scripts/          prepare-fork.sh, build-shell.sh (on-device dev build)
-docs/             ARCHITECTURE, TROUBLESHOOTING, TESTING
+  moonlight-qt/        Upstream, pinned as a submodule (patched at build time)
+os-image/              pi-gen stage, rootfs overlay, image build script
+  overlay/             systemd units, polkit rules, plymouth theme, /etc/moonos defaults
+scripts/               prepare-fork.sh, build-shell.sh, release.sh, package-update.sh
+.github/workflows/     release.yml — cloud build + publish of Moon Shell updates
+docs/                  ARCHITECTURE, TROUBLESHOOTING, TESTING
+AGENTS.md              Instructions for AI coding agents working in this repo
 ```
 
 Docs: [Architecture](docs/ARCHITECTURE.md) ·
-[Troubleshooting](docs/TROUBLESHOOTING.md) · [Testing checklist](docs/TESTING.md)
+[Troubleshooting](docs/TROUBLESHOOTING.md) · [Testing checklist](docs/TESTING.md) ·
+[AGENTS.md](AGENTS.md) (for AI coding agents)
 
 ## License
 
-Moon OS inherits GPLv3 from moonlight-qt. Moon OS additions are GPLv3.
+**This needs a decision — the repo currently has two licenses that don't
+agree, and it should be resolved before this image is distributed to anyone
+else:**
+
+- The root [`LICENSE`](LICENSE) file is **MIT**.
+- `third_party/moonlight-qt/LICENSE` (upstream) is **GPLv3**.
+
+Moon Shell is not a separate program that happens to call moonlight-qt — the
+Moon OS fork patch compiles Moon Shell's own sources directly into the same
+binary as moonlight-qt's, via `app/moon/moon.pri` included from moonlight-qt's
+own `app.pro` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). That makes
+the shipped `moon-shell` binary a combined/derivative work under GPLv3, which
+requires the *whole* combined work to be distributed under GPLv3 (or a
+GPL-compatible license) — a plain MIT license on top isn't sufficient for the
+compiled binary you flash onto the Pi, even though Moon OS's own new files
+could be MIT on their own.
+
+Until this is resolved, treat the effective license of the built image as
+**GPLv3** (matching moonlight-qt), and don't rely on the root `LICENSE` file
+for the compiled artifact. If MIT is genuinely wanted for Moon OS's own
+source files (`moon-shell/`, `os-image/`, scripts, docs), that's fine to state
+separately, but the distributed binary still needs a GPLv3-compatible
+license statement alongside it.

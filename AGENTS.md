@@ -59,6 +59,33 @@ Rules:
   with `submodules: false` and lets `prepare-fork.sh` clone moonlight-qt fresh
   at the pinned `MOONLIGHT_REF` commit. Keep it that way.
 
+## `.github/workflows/release.yml` — CI gotchas already hit once
+
+If you touch this workflow, don't reintroduce either of these — both
+produced confusing, low-information failures the first time:
+
+- **Do not add `docker/setup-qemu-action` alongside
+  `uraimo/run-on-arch-action`.** The latter registers its own QEMU binfmt
+  handlers internally; a second registration collides and the whole job
+  dies immediately with a bare `process '.../run-on-arch.sh' failed with
+  exit code N` and zero install/compile output above it.
+- **Use `arch:`/`distro:` inputs, not a hand-picked `base_image:` tag.**
+  A guessed tag like `arm64v8/debian:bookworm` can fail with `no match for
+  platform in manifest: not found` even though it resolves fine as a normal
+  `docker pull`. `arch: aarch64` / `distro: bookworm` is the action's own
+  tested combination — use that.
+- Emulated arm64 Qt/FFmpeg builds are tight on the default ~14GB runner disk
+  and can OOM under wide `-j` parallelism; the workflow frees disk space
+  first and caps `make -j2`. If you see the job die with no compiler error
+  at all, suspect this before anything else.
+- **`qmake6` can fail with `failed to parse default search paths from
+  compiler output`** inside the emulated container even though the identical
+  call succeeds in the pi-gen chroot `os-image/build.sh` uses — a locale/
+  colorized-gcc-output issue in qmake's compiler-probing, not a source
+  problem. The workflow exports `LC_ALL=C LANG=C TERM=dumb GCC_COLORS=`
+  before `qmake6` and prints a compiler diagnostic sample first. If it
+  recurs, read that diagnostic output before changing anything else.
+
 ## Commit messages
 
 Write real commit messages. This repo has history like `upd`, `upd`, and a
@@ -108,3 +135,7 @@ joke message — don't add to that pile.
 - Don't skip the friendly-error convention: raw errors/log excerpts must stay
   behind developer mode (`MoonSettings.developerMode`), never shown to a
   normal user by default.
+- Don't "clean up" the licensing by deleting or silently editing the root
+  `LICENSE` (MIT) or `third_party/moonlight-qt/LICENSE` (GPLv3). They
+  currently disagree — see README.md, "License" — and resolving that is a
+  decision for a human maintainer, not something to paper over in a commit.

@@ -15,6 +15,16 @@ Windows and on Linux.
 - [ ] Cold boot to interactive Home in < 30 s (Pi 4) / < 20 s (Pi 5)
 - [ ] No getty/login prompt on any connected display
 - [ ] Reboot and power-off from the UI work; TV shows no Linux text during shutdown
+- [ ] All icon glyphs render (no empty "tofu" boxes) — home cards, hint bar,
+      settings rows, emoji in the wizard
+- [ ] `moon-shell.log` appears on the boot (FAT) partition after any boot,
+      readable from a Windows/Mac machine, and its header lines
+      (user/groups, DRM master, Qt platform) look sane
+- [ ] Force a crash loop (`sudo systemctl kill -s SEGV moon-shell` ×4 fast) →
+      Recovery screen appears, not a black screen
+- [ ] Force recovery to also fail (rename `RecoveryView.qml` temporarily on a
+      test build) → emergency text banner + login prompt appears, never a
+      silent black screen
 
 ## First-boot wizard
 - [ ] "Welcome to Moon OS" wizard appears exactly once
@@ -32,9 +42,30 @@ Windows and on Linux.
 
 ## Controllers
 - [ ] Xbox One/Series, DualShock 4, DualSense, 8BitDo pair from the UI
+- [ ] Setup wizard auto-discovers and pairs a controller in pairing mode with
+      no manual navigation required (hold pair button, it just connects)
 - [ ] Battery % shows where supported; Forget + re-pair works
 - [ ] Paired controller reconnects on power-up without touching the UI
 - [ ] UI navigation: A select, B back, X context actions, D-pad + sticks move focus
+- [ ] From the top row of the Network and Bluetooth screens, pressing Up
+      reaches the Wi-Fi/Bluetooth toggle and Scan buttons (not stuck)
+- [ ] USB controller works with zero pairing (plug and go)
+
+## Keyboard & mouse
+- [ ] Arrow keys + Enter/Escape navigate the entire shell on a physical
+      keyboard, including in and out of dialogs
+- [ ] Typing on a physical keyboard enters text directly into every field
+      (Wi-Fi password, manual IP, search, rename) with no on-screen keyboard
+      interaction needed
+- [ ] On-screen keyboard appears for every text entry and is fully
+      drivable by controller alone (D-pad + A to type, DONE to submit)
+- [ ] Password fields mask by default; reveal toggle shows/hides them
+- [ ] Clipboard paste option is visible only when developer mode is on
+- [ ] Mouse: hovering a card/button gives it visible focus; click activates;
+      right-click on a paired PC card opens its options; dragging a slider
+      (e.g. safe area, bitrate) works
+- [ ] Mouse cursor appears the moment a mouse is plugged in, with no cursor
+      visible at all when none is attached
 
 ## Pairing & library
 - [ ] Sunshine host on same subnet appears via mDNS within ~5 s
@@ -60,12 +91,33 @@ Windows and on Linux.
 - [ ] CEC: TV remote navigates the shell; toggle off stops it; "Wake TV" turns a standby TV on and grabs the input
 - [ ] kill -9 the shell 4× fast → recovery screen (not a black screen, never a terminal)
 
+## Background & animation
+- [ ] Stars twinkle independently (not all in sync) and are visible against
+      the dark background without being distracting
+- [ ] Shooting stars appear periodically at varying angles/positions
+- [ ] The moon animates smoothly to a new position/size on every screen
+      change (Home → Pair → Settings → back), never snapping instantly
+- [ ] Animations stay smooth (no visible stutter) while a settings list or
+      library grid is also scrolling
+
 ## System
-- [ ] Update runs, status reaches success, log in devmode
+- [ ] Update (OS packages) runs, status reaches success, log in devmode
 - [ ] Developer mode on → SSH reachable; off → connection refused
 - [ ] Export to USB → file on stick; import on a *fresh* flash restores hosts + settings
 - [ ] Factory reset → wizard on next boot, no paired hosts/networks/BT remain
 - [ ] Nothing ever shows a terminal, a Qt error dialog, or a raw log excerpt outside devmode
+
+## Moon Shell self-update (GitHub Releases path)
+- [ ] `.github/workflows/release.yml` completes end-to-end from a manual
+      "Run workflow" click and publishes a Release with `version`,
+      `moon-shell-arm64`, `moon-shell-arm64.sha256`
+- [ ] A push to `main` touching `moon-shell/**` auto-triggers the same workflow
+- [ ] A console on an older version shows the update as available and
+      installs it; `/etc/moonos/version` matches the release afterward
+- [ ] A deliberately corrupted `moon-shell-arm64.sha256` causes the console
+      to refuse the update (no partial/broken binary installed)
+- [ ] After a shell update, a restart brings up the new version cleanly (no
+      crash loop from the swap)
 
 ## Soak
 - [ ] 4-hour stream session: no thermal throttling artifacts (Pi 5 with fan), no memory creep (`smem` over SSH before/after)

@@ -111,6 +111,21 @@ jobs:
               libcec-dev
           run: |
             set -ex
+            # qmake probes the compiler (g++ -E -dM ...) to learn its default
+            # include/library search paths, then parses the plain-English
+            # diagnostic output. A non-C locale can make gcc emit localized
+            # or reformatted text there, which breaks that parser with
+            # "failed to parse default search paths from compiler output" /
+            # "QMAKE_CXX.COMPILER_MACROS is not defined" — seen once already
+            # in this emulated container even though the same qmake call
+            # succeeds fine inside the pi-gen chroot used by os-image/build.sh.
+            export LC_ALL=C LANG=C TERM=dumb GCC_COLORS=
+            echo "--- compiler probe diagnostics ---"
+            g++ --version
+            g++ -dumpmachine
+            echo | g++ -E -dM -x c++ - | head -5
+            echo "-----------------------------------"
+
             cd /work/third_party/moonlight-qt
             mkdir -p build && cd build
             qmake6 ../moonlight-qt.pro

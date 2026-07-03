@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Moon OS
+Description=Moon OS boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/moonos
+ScriptFile=/usr/share/plymouth/themes/moonos/moonos.script

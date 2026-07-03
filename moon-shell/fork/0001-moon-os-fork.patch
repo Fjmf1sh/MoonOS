@@ -1,0 +1,48 @@
+diff --git a/app/app.pro b/app/app.pro
+index e3fb19a..883aa76 100644
+--- a/app/app.pro
++++ b/app/app.pro
+@@ -10,6 +10,12 @@ unix:!macx {
+ 
+ include(../globaldefs.pri)
+ 
++# Moon OS fork integration: when the moon/ directory has been dropped into
++# app/ (by scripts/prepare-fork.sh in the Moon OS repo), build Moon Shell.
++exists(moon/moon.pri) {
++    include(moon/moon.pri)
++}
++
+ # Precompile QML files to avoid writing qmlcache on portable versions.
+ # Since this binds the app against the Qt runtime version, we will only
+ # do this for Windows and Mac (when disable-prebuilts is not defined),
+diff --git a/app/main.cpp b/app/main.cpp
+index 532e5d0..b846668 100644
+--- a/app/main.cpp
++++ b/app/main.cpp
+@@ -55,6 +55,10 @@
+ #include "settings/streamingpreferences.h"
+ #include "gui/sdlgamepadkeynavigation.h"
+ 
++#ifdef MOON_OS
++#include "moon/src/moonregister.h"
++#endif
++
+ #if defined(Q_OS_WIN32)
+ #define IS_UNSPECIFIED_HANDLE(x) ((x) == INVALID_HANDLE_VALUE || (x) == NULL)
+ 
+@@ -1040,8 +1044,15 @@ int main(int argc, char *argv[])
+         engine.rootContext()->setContextProperty("initialView", initialView);
+         engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
+ 
++#ifdef MOON_OS
++        // Moon OS: register the console services and load the Moon Shell
++        // frontend instead of the desktop Moonlight UI.
++        Moon::registerTypes(&engine);
++        engine.load(QUrl(QStringLiteral("qrc:/moon/qml/MoonRoot.qml")));
++#else
+         // Load the main.qml file
+         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));
++#endif
+         if (engine.rootObjects().isEmpty())
+             return -1;
+     }

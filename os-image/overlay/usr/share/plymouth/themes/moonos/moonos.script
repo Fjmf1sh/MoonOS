@@ -1,0 +1,27 @@
+// Moon OS boot splash: deep-space gradient, wordmark, breathing moon dot.
+
+Window.SetBackgroundTopColor(0.039, 0.051, 0.110);     // #0a0d1c
+Window.SetBackgroundBottomColor(0.075, 0.094, 0.196);  // #131832
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetWidth() / 2 - logo.image.GetWidth() / 2);
+logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2);
+
+moon.image = Image("moon-dot.png");
+moon.sprite = Sprite(moon.image);
+moon.sprite.SetX(Window.GetWidth() / 2 - moon.image.GetWidth() / 2);
+moon.sprite.SetY(Window.GetHeight() / 2 + logo.image.GetHeight() / 2 + 40);
+
+progress = 0;
+fun refresh_callback() {
+    progress++;
+    // Gentle pulse between 35% and 100% opacity
+    opacity = 0.675 + 0.325 * Math.Sin(progress / 20);
+    moon.sprite.SetOpacity(opacity);
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+// Keep the splash clean: no text prompts on the consumer path
+fun display_message_callback(text) {}
+Plymouth.SetDisplayMessageFunction(display_message_callback);

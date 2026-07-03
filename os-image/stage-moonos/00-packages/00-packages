@@ -1,0 +1,53 @@
+# Moon OS runtime dependencies (Raspberry Pi OS bookworm, arm64).
+# Build-only -dev packages are installed and purged by 02-build-shell.
+
+# Qt 6 QML runtime for Moon Shell
+libqt6svg6
+qt6-qpa-plugins
+qml6-module-qtquick
+qml6-module-qtquick-controls
+qml6-module-qtquick-templates
+qml6-module-qtquick-layouts
+qml6-module-qtquick-window
+qml6-module-qtqml
+qml6-module-qtqml-models
+qml6-module-qtqml-workerscript
+
+# Streaming stack (SDL video/audio/input, FFmpeg hardware decode, Opus audio)
+libsdl2-2.0-0
+libsdl2-ttf-2.0-0
+libopus0
+libavcodec59
+libavformat59
+libswscale6
+libva2
+libva-drm2
+# moonlight enables the Wayland + X11 VA-API paths at build time (the chroot
+# has those dev libs), so moon-shell links these at runtime even though the
+# console session itself is neither Wayland nor X11. Pin them explicitly —
+# omitting libva-wayland2 is what left the binary unable to start.
+libva-wayland2
+libva-x11-2
+libvdpau1
+libdrm2
+libegl1
+libgles2
+# Qt EGLFS on KMS: GBM buffer allocation + libinput for keyboard/mouse
+libgbm1
+libinput10
+libxkbcommon0
+
+# System services driven by the shell
+network-manager
+bluez
+polkitd
+libcec6
+cec-utils
+
+# Boot experience
+plymouth
+plymouth-label
+
+# Misc
+alsa-utils
+rfkill

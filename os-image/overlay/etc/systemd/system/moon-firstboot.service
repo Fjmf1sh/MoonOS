@@ -1,0 +1,15 @@
+[Unit]
+Description=Moon OS first-boot provisioning
+Before=moon-shell.service NetworkManager.service bluetooth.service
+ConditionPathExists=!/var/lib/moonos/.provisioned
+DefaultDependencies=no
+After=local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/firstboot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

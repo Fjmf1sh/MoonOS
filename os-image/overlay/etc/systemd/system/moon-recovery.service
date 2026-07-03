@@ -1,0 +1,30 @@
+[Unit]
+Description=Moon OS recovery screen
+# Started by moon-shell.service OnFailure= after repeated crashes.
+After=systemd-user-sessions.service dbus.service
+Conflicts=getty@tty1.service
+# If recovery ALSO fails repeatedly (e.g. a QML fault that breaks the whole
+# UI, so even RecoveryView can't render), fall through to the emergency
+# text screen instead of looping on a black screen forever.
+StartLimitIntervalSec=120
+StartLimitBurst=3
+OnFailure=moon-emergency.service
+
+[Service]
+User=moon
+Group=moon
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=truncate:/boot/firmware/moon-recovery.log
+StandardError=append:/boot/firmware/moon-recovery.log
+SupplementaryGroups=video render input audio bluetooth
+Environment=MOONOS_STATE_DIR=/var/lib/moonos
+Environment=QT_QPA_EGLFS_HIDECURSOR=1
+Environment=QT_QPA_EGLFS_ALWAYS_SET_MODE=1
+# Safe mode: the start script skips the KMS resolution override and the
+# shell shows RecoveryView instead of the normal UI.
+Environment=MOONOS_RECOVERY=1
+ExecStart=/usr/lib/moonos/start-shell.sh
+Restart=on-failure
+RestartSec=5

@@ -1,0 +1,6 @@
+[Unit]
+Description=Enable Moon OS developer mode (SSH + logs)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/devmode.sh on

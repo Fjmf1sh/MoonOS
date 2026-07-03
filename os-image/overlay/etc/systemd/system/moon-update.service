@@ -1,0 +1,10 @@
+[Unit]
+Description=Moon OS system update
+# Started on demand from the shell (System settings -> Update).
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/update.sh
+TimeoutStartSec=1800

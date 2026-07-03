@@ -1,0 +1,13 @@
+[Unit]
+Description=Moon OS factory reset (runs only when staged from the UI)
+ConditionPathExists=/var/lib/moonos/.factory-reset
+DefaultDependencies=no
+After=local-fs.target
+Before=moon-shell.service NetworkManager.service bluetooth.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/factory-reset.sh
+
+[Install]
+WantedBy=multi-user.target

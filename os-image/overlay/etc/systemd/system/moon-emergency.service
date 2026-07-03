@@ -1,0 +1,21 @@
+[Unit]
+Description=Moon OS emergency console (last-resort fallback)
+# Triggered only when BOTH the shell and the recovery UI fail to render.
+# Guarantees the user sees a readable message and a login prompt instead of
+# a permanent black screen.
+Conflicts=getty@tty1.service
+After=moon-recovery.service
+
+[Service]
+Type=idle
+# Print the friendly banner, then hand tty1 to a root login so a developer
+# can diagnose on the spot (or the user can read where the log lives).
+ExecStartPre=/usr/lib/moonos/emergency-banner.sh
+ExecStart=/sbin/agetty --noclear tty1 linux
+Restart=always
+RestartSec=3
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes

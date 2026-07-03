@@ -1,0 +1,7 @@
+[Unit]
+Description=Import Moon OS settings from a USB drive
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/config-io.sh import
+TimeoutStartSec=120

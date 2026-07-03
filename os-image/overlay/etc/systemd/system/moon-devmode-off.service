@@ -1,0 +1,6 @@
+[Unit]
+Description=Disable Moon OS developer mode
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/devmode.sh off

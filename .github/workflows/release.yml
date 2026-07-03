@@ -88,7 +88,13 @@ jobs:
       - name: Compile moon-shell (aarch64)
         uses: uraimo/run-on-arch-action@v2
         with:
-          base_image: arm64v8/debian:bookworm
+          # Use the action's own tested arch/distro presets instead of a
+          # hand-picked base_image tag. "arm64v8/debian:bookworm" isn't a
+          # resolvable manifest for this action's build/pull path ("no match
+          # for platform in manifest") — arch+distro is the supported,
+          # working combination for Debian 12 on aarch64.
+          arch: aarch64
+          distro: bookworm
           githubToken: ${{ github.token }}
           dockerRunArgs: --volume "${{ github.workspace }}:/work"
           install: |

@@ -112,6 +112,22 @@ if [ -z "$IMG_SRC" ]; then
 fi
 cp -f "$IMG_SRC" "$REPO_ROOT/deploy/moon-os-rpi4-rpi5.img"
 
+# Collect the self-update artifacts emitted by the 02-build-shell stage
+# (the compiled aarch64 binary + version + checksum) so scripts/release.sh
+# can publish them without re-extracting from the image.
+if [ -f "$PI_GEN_DIR/deploy/moon-shell-arm64" ]; then
+    mkdir -p "$REPO_ROOT/deploy/update"
+    cp -f "$PI_GEN_DIR/deploy/moon-shell-arm64" "$REPO_ROOT/deploy/update/moon-shell-arm64"
+    cp -f "$PI_GEN_DIR/deploy/moon-shell-arm64.sha256" "$REPO_ROOT/deploy/update/moon-shell-arm64.sha256" 2>/dev/null || true
+    if [ -f "$PI_GEN_DIR/deploy/moon-shell-version" ]; then
+        cp -f "$PI_GEN_DIR/deploy/moon-shell-version" "$REPO_ROOT/deploy/update/version"
+    else
+        echo "$VERSION" > "$REPO_ROOT/deploy/update/version"
+    fi
+    echo "==> Update artifacts ready in $REPO_ROOT/deploy/update"
+fi
+
 echo ""
 echo "Done: $REPO_ROOT/deploy/moon-os-rpi4-rpi5.img (Moon OS $VERSION)"
 echo "Flash it with Raspberry Pi Imager → 'Use custom image'."
+echo "Publish this build as an update with:  scripts/release.sh"

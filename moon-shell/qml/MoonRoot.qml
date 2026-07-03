@@ -61,36 +61,7 @@ ApplicationWindow {
 
     // ---- backdrop -----------------------------------------------------------
 
-    Rectangle {
-        anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.bgTop }
-            GradientStop { position: 1.0; color: Theme.bgBottom }
-        }
-
-        // Soft moon glow in the top-right corner
-        Repeater {
-            model: 4
-            Rectangle {
-                readonly property real r: 140 + index * 90
-                x: parent.width * 0.86 - r / 2
-                y: parent.height * 0.12 - r / 2
-                width: r; height: r; radius: r / 2
-                color: Theme.accent
-                opacity: 0.05 - index * 0.01
-            }
-        }
-        Rectangle {
-            x: parent.width * 0.86 - 60
-            y: parent.height * 0.12 - 60
-            width: 120; height: 120; radius: 60
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#e8ecff" }
-                GradientStop { position: 1.0; color: "#aab8e8" }
-            }
-            opacity: 0.9
-        }
-    }
+    SpaceBackdrop { id: backdrop; anchors.fill: parent }
 
     // ---- safe area + content stack -----------------------------------------
 
@@ -107,7 +78,11 @@ ApplicationWindow {
             // Whenever a new view becomes current, give it active focus so
             // keyboard / gamepad key-events actually reach it. Without this,
             // Qt receives input but no control is focused, so nothing moves.
-            onCurrentItemChanged: if (currentItem) currentItem.forceActiveFocus()
+            // Also drift the moon to a new pose on every screen change.
+            onCurrentItemChanged: {
+                if (currentItem) currentItem.forceActiveFocus()
+                backdrop.nextPose()
+            }
 
             pushEnter: Transition {
                 NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.animMed }
@@ -154,8 +129,11 @@ ApplicationWindow {
 
     Component.onCompleted: {
         // Gamepad → key-event navigation for the entire shell (reused from
-        // the upstream moonlight-qt UI layer).
+        // the upstream moonlight-qt UI layer). UiNavMode=false makes the
+        // D-pad/stick emit arrow keys (spatial navigation) rather than
+        // Tab/Backtab, which is what our grid/list layouts expect.
         SdlGamepadKeyNavigation.enable()
+        SdlGamepadKeyNavigation.setUiNavMode(false)
 
         // Start the gamepad polling timer immediately. Without this the timer
         // stays idle until an (often never-arriving) window-activation event,

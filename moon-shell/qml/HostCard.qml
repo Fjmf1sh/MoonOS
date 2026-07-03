@@ -89,5 +89,17 @@ FocusScope {
     scale: activeFocus ? Theme.focusScale : 1.0
     Behavior on scale { NumberAnimation { duration: Theme.animFast; easing.type: Easing.OutQuad } }
 
-    MouseArea { anchors.fill: parent; onClicked: { root.forceActiveFocus(); root.activated() } }
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onEntered: root.forceActiveFocus()
+        onClicked: function(mouse) {
+            root.forceActiveFocus()
+            if (mouse.button === Qt.RightButton)
+                root.optionsRequested()   // right-click = X / options
+            else
+                root.activated()
+        }
+    }
 }

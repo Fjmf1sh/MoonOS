@@ -24,7 +24,9 @@ StandardOutput=truncate:/boot/firmware/moon-shell.log
 StandardError=append:/boot/firmware/moon-shell.log
 SupplementaryGroups=video render input audio bluetooth
 Environment=MOONOS_STATE_DIR=/var/lib/moonos
-Environment=QT_QPA_EGLFS_HIDECURSOR=1
+# Do NOT hide the cursor: when a USB/BT mouse is present Qt EGLFS shows a
+# pointer for point-and-click navigation. With no mouse attached, EGLFS
+# simply never draws one, so this is safe on a controller-only setup.
 # Force the KMS modeset so a fresh HDMI link comes up instead of a black CRTC
 Environment=QT_QPA_EGLFS_ALWAYS_SET_MODE=1
 Environment=SDL_AUDIODRIVER=alsa

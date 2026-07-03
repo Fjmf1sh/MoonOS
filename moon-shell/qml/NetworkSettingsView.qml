@@ -100,39 +100,64 @@ FocusScope {
             }
         }
 
+        // Top controls live ABOVE the list as real focusable buttons (a
+        // ListView header is not reachable by arrow-key/controller nav).
+        Row {
+            id: topControls
+            width: parent.width
+            spacing: Theme.padSmall
+
+            FocusButton {
+                id: wifiBtn
+                width: (parent.width - Theme.padSmall) / 2
+                height: 96
+                focus: true
+                icon: NetworkService.wifiEnabled ? "📶" : "🚫"
+                label: qsTr("Wi-Fi")
+                sublabel: !NetworkService.wifiAvailable ? qsTr("No adapter")
+                          : NetworkService.wifiEnabled ? qsTr("On — select to turn off")
+                          : qsTr("Off — select to turn on")
+                enabled: NetworkService.wifiAvailable
+                KeyNavigation.right: scanBtn
+                KeyNavigation.down: netList.count > 0 ? netList : null
+                onActivated: NetworkService.setWifiEnabled(!NetworkService.wifiEnabled)
+            }
+            FocusButton {
+                id: scanBtn
+                width: (parent.width - Theme.padSmall) / 2
+                height: 96
+                icon: "🔄"
+                label: qsTr("Scan again")
+                sublabel: NetworkService.scanning ? qsTr("Scanning…") : qsTr("Look for networks")
+                KeyNavigation.left: wifiBtn
+                KeyNavigation.down: netList.count > 0 ? netList : null
+                onActivated: NetworkService.scan()
+            }
+        }
+
         ListView {
             id: netList
             width: parent.width
             height: parent.height - y
             spacing: Theme.padSmall
             clip: true
-            focus: true
             keyNavigationEnabled: true
             model: NetworkService.networks
 
-            header: Column {
-                width: netList.width
-                spacing: Theme.padSmall
-                bottomPadding: Theme.padSmall
-
-                ToggleRow {
-                    width: netList.width
-                    label: qsTr("Wi-Fi")
-                    checked: NetworkService.wifiEnabled
-                    enabled: NetworkService.wifiAvailable
-                    onToggled: function(v) { NetworkService.setWifiEnabled(v) }
-                }
-                ActionRow {
-                    width: netList.width
-                    label: qsTr("Scan again")
-                    busy: NetworkService.scanning
-                    onActivated: NetworkService.scan()
+            // Bridge the top edge back up to the Wi-Fi / Scan buttons.
+            Keys.onUpPressed: function(event) {
+                if (currentIndex <= 0) {
+                    wifiBtn.forceActiveFocus()
+                    event.accepted = true
+                } else {
+                    event.accepted = false
                 }
             }
 
             delegate: FocusButton {
                 width: netList.width
                 height: 100
+                focus: ListView.isCurrentItem
                 icon: modelData.secured ? "🔒" : "📶"
                 label: modelData.ssid
                 sublabel: (modelData.active ? qsTr("Connected") + " · "

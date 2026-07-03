@@ -106,5 +106,10 @@ FocusScope {
     scale: activeFocus ? Theme.focusScale : 1.0
     Behavior on scale { NumberAnimation { duration: Theme.animFast; easing.type: Easing.OutQuad } }
 
-    MouseArea { anchors.fill: parent; onClicked: { root.forceActiveFocus(); root.activated() } }
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: root.forceActiveFocus()
+        onClicked: { root.forceActiveFocus(); root.activated() }
+    }
 }

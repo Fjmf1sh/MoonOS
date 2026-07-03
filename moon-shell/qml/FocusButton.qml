@@ -94,6 +94,8 @@ FocusScope {
 
     MouseArea {
         anchors.fill: parent
+        hoverEnabled: true
+        onEntered: if (root.enabled) root.forceActiveFocus()
         onClicked: { root.forceActiveFocus(); if (root.enabled) root.activated() }
     }
 }

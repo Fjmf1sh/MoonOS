@@ -13,6 +13,9 @@ FocusScope {
     signal backspace()
     signal accepted()
     signal dismissed()
+    // Emitted when the user tries to move focus off the top edge of the
+    // keyboard, so the hosting dialog can hand focus to controls above it.
+    signal navigateOut(string direction)
 
     readonly property var lettersLayout: [
         ["1","2","3","4","5","6","7","8","9","0"],
@@ -57,18 +60,49 @@ FocusScope {
         }
     }
 
-    Keys.onUpPressed: { if (curRow > 0) { curRow--; clampCol() } }
-    Keys.onDownPressed: { if (curRow < layout.length - 1) { curRow++; clampCol() } }
-    Keys.onLeftPressed: { if (curCol > 0) curCol-- }
-    Keys.onRightPressed: { if (curCol < layout[curRow].length - 1) curCol++ }
-    Keys.onReturnPressed: pressCurrent()
-    Keys.onEnterPressed: pressCurrent()
-    Keys.onSpacePressed: pressCurrent()
-    Keys.onEscapePressed: dismissed()
-    // X button (mapped to keyboard 'x'? no — SDL nav sends Menu key for X) —
-    // backspace is also reachable directly on the bottom row.
+    // A single handler serves controller, TV remote AND a physical keyboard.
+    // The distinction: key-events synthesized from the gamepad (by moonlight's
+    // SdlGamepadKeyNavigation) and the CEC remote carry no `text`; real
+    // keystrokes from a plugged-in keyboard do. So printable `text` is treated
+    // as direct typing, while text-less Return/arrows drive the on-screen keys.
     Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Backspace) { backspace(); event.accepted = true }
+        // ---- physical keyboard: type the character directly ----
+        if (event.text.length === 1) {
+            var code = event.text.charCodeAt(0)
+            if (code === 13 || code === 10) { accepted(); event.accepted = true; return }      // Enter
+            if (code === 8 || code === 127) { backspace(); event.accepted = true; return }      // Backspace/Del
+            if (code >= 32) { keyPressed(event.text); event.accepted = true; return }           // printable
+        }
+
+        // ---- controller / remote / arrow navigation ----
+        switch (event.key) {
+        case Qt.Key_Up:
+            if (curRow > 0) { curRow--; clampCol() } else navigateOut("up")
+            break
+        case Qt.Key_Down:
+            if (curRow < layout.length - 1) { curRow++; clampCol() }
+            break
+        case Qt.Key_Left:
+            if (curCol > 0) curCol--; else navigateOut("left")
+            break
+        case Qt.Key_Right:
+            if (curCol < layout[curRow].length - 1) curCol++
+            break
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+        case Qt.Key_Space:
+            pressCurrent()
+            break
+        case Qt.Key_Backspace:
+            backspace()
+            break
+        case Qt.Key_Escape:
+            dismissed()
+            break
+        default:
+            return
+        }
+        event.accepted = true
     }
 
     Column {

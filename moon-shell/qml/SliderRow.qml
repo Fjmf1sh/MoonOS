@@ -53,6 +53,7 @@ FocusScope {
             spacing: Theme.pad
 
             Rectangle {
+                id: track
                 width: 320; height: 10; radius: 5
                 color: Theme.bgTop
                 anchors.verticalCenter: parent.verticalCenter
@@ -62,6 +63,39 @@ FocusScope {
                     radius: 5
                     color: Theme.accent
                     Behavior on width { NumberAnimation { duration: 80 } }
+                }
+
+                // Draggable thumb so the slider is fully mouse-operable, not
+                // just keyboard/controller (click or drag anywhere on the track).
+                Rectangle {
+                    width: 26; height: 26; radius: 13
+                    color: Theme.text
+                    border.color: Theme.accent
+                    border.width: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: (parent.width - width) * (root.to > root.from ? (root.value - root.from) / (root.to - root.from) : 0)
+                    visible: root.enabled
+                }
+
+                MouseArea {
+                    id: trackMouse
+                    anchors.fill: parent
+                    anchors.margins: -18   // generous hit area for a 10-foot pointer
+                    enabled: root.enabled
+                    // mouseX is relative to this MouseArea, whose left edge sits
+                    // 18px left of the track (negative margin), so subtract it.
+                    function setFromX(mx) {
+                        var frac = Math.max(0, Math.min(1, (mx - 18) / track.width))
+                        var raw = root.from + frac * (root.to - root.from)
+                        var stepped = Math.max(root.from, Math.min(root.to,
+                                          Math.round(raw / root.step) * root.step))
+                        if (stepped !== root.value) {
+                            root.value = stepped
+                            root.changed(stepped)
+                        }
+                    }
+                    onPressed: { root.forceActiveFocus(); setFromX(mouseX) }
+                    onPositionChanged: if (pressed) setFromX(mouseX)
                 }
             }
 

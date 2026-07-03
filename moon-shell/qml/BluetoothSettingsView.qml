@@ -53,39 +53,65 @@ FocusScope {
             }
         }
 
+        // Focusable top controls (a ListView header cannot be reached by
+        // arrow-key / controller navigation).
+        Row {
+            id: topControls
+            width: parent.width
+            spacing: Theme.padSmall
+
+            FocusButton {
+                id: btBtn
+                width: (parent.width - Theme.padSmall) / 2
+                height: 96
+                focus: true
+                icon: BluetoothService.powered ? "🔵" : "⚫"
+                label: qsTr("Bluetooth")
+                sublabel: !BluetoothService.available ? qsTr("No adapter")
+                          : BluetoothService.powered ? qsTr("On — select to turn off")
+                          : qsTr("Off — select to turn on")
+                enabled: BluetoothService.available
+                KeyNavigation.right: searchBtn
+                KeyNavigation.down: devList.count > 0 ? devList : null
+                onActivated: BluetoothService.setPowered(!BluetoothService.powered)
+            }
+            FocusButton {
+                id: searchBtn
+                width: (parent.width - Theme.padSmall) / 2
+                height: 96
+                icon: "🔍"
+                label: BluetoothService.discovering ? qsTr("Stop searching") : qsTr("Search for controllers")
+                sublabel: BluetoothService.discovering ? qsTr("Scanning…") : qsTr("Put your pad in pairing mode first")
+                KeyNavigation.left: btBtn
+                KeyNavigation.down: devList.count > 0 ? devList : null
+                onActivated: BluetoothService.discovering ? BluetoothService.stopScan()
+                                                          : BluetoothService.startScan()
+            }
+        }
+
         ListView {
             id: devList
             width: parent.width
             height: parent.height - y
             spacing: Theme.padSmall
             clip: true
-            focus: true
             keyNavigationEnabled: true
             model: BluetoothService.devices
 
-            header: Column {
-                width: devList.width
-                spacing: Theme.padSmall
-                bottomPadding: Theme.padSmall
-
-                ToggleRow {
-                    width: devList.width
-                    label: qsTr("Bluetooth")
-                    checked: BluetoothService.powered
-                    enabled: BluetoothService.available
-                    onToggled: function(v) { BluetoothService.setPowered(v) }
-                }
-                ActionRow {
-                    width: devList.width
-                    label: BluetoothService.discovering ? qsTr("Stop searching") : qsTr("Search for controllers")
-                    onActivated: BluetoothService.discovering ? BluetoothService.stopScan()
-                                                              : BluetoothService.startScan()
+            // Bridge the top edge back up to the Bluetooth / Search buttons.
+            Keys.onUpPressed: function(event) {
+                if (currentIndex <= 0) {
+                    btBtn.forceActiveFocus()
+                    event.accepted = true
+                } else {
+                    event.accepted = false
                 }
             }
 
             delegate: FocusButton {
                 width: devList.width
                 height: 104
+                focus: ListView.isCurrentItem
                 icon: modelData.isController ? "🎮" : "📱"
                 label: modelData.name
                 sublabel: {

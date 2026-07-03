@@ -78,3 +78,16 @@ if ldd /usr/bin/moon-shell | grep -q 'not found'; then
     exit 1
 fi
 CHROOT
+
+# Export the freshly compiled binary as an update artifact alongside the image
+# in pi-gen's deploy dir, so scripts/release.sh can publish it directly — no
+# need to crack open the .img afterwards. Named at the top level (not a subdir)
+# so pi-gen's docker export reliably carries it back to the host.
+if [ -n "${DEPLOY_DIR:-}" ] && [ -f "${ROOTFS_DIR}/usr/bin/moon-shell" ]; then
+    mkdir -p "${DEPLOY_DIR}"
+    cp "${ROOTFS_DIR}/usr/bin/moon-shell" "${DEPLOY_DIR}/moon-shell-arm64"
+    cp "${ROOTFS_DIR}/etc/moonos/version" "${DEPLOY_DIR}/moon-shell-version" 2>/dev/null \
+        || echo "0.0.0" > "${DEPLOY_DIR}/moon-shell-version"
+    ( cd "${DEPLOY_DIR}" && sha256sum moon-shell-arm64 > moon-shell-arm64.sha256 )
+    echo "==> Exported update artifact: ${DEPLOY_DIR}/moon-shell-arm64"
+fi

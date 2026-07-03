@@ -1,0 +1,118 @@
+name: Release Moon OS update
+
+# Publishes a Moon Shell self-update to GitHub Releases so flashed consoles can
+# pull it (System settings -> Update). Runs entirely in the cloud — nothing to
+# run locally. Trigger it two ways:
+#   * GitHub website: Actions tab -> "Release Moon OS update" -> Run workflow
+#   * or push a git tag like v2026.07.10
+#
+# It compiles ONLY the moon-shell binary (aarch64, Debian bookworm — the Pi's
+# runtime), which is far lighter than building the whole image.
+
+on:
+  # Manual button in the Actions tab.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (blank = today's date + run number)"
+        required: false
+      prerelease:
+        description: "Mark as a pre-release"
+        type: boolean
+        default: false
+  # Auto-publish whenever the shell/UI or fork changes land on main.
+  # (Add [skip ci] to a commit message to suppress a release.)
+  push:
+    branches:
+      - main
+    paths:
+      - 'moon-shell/**'
+      - 'third_party/moonlight-qt'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+# Never let two releases build at once — they'd fight over tags/assets.
+concurrency:
+  group: moonos-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prepare the Moonlight fork (copy Moon Shell in + patch)
+        run: bash scripts/prepare-fork.sh
+
+      - name: Work out the version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            V="${{ github.event.inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            V="${GITHUB_REF_NAME#v}"
+          else
+            # Date plus the run number, so several releases in one day still
+            # sort as newer (consoles only update to a higher version).
+            V="$(date +%Y.%m.%d).${{ github.run_number }}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $V"
+
+      - name: Set up QEMU (for the arm64 container)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Compile moon-shell (aarch64)
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          base_image: arm64v8/debian:bookworm
+          githubToken: ${{ github.token }}
+          dockerRunArgs: --volume "${{ github.workspace }}:/work"
+          install: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              build-essential pkg-config \
+              qt6-base-dev qt6-declarative-dev qt6-base-dev-tools libqt6svg6-dev \
+              libgl1-mesa-dev libegl1-mesa-dev \
+              libopus-dev libsdl2-dev libsdl2-ttf-dev libssl-dev \
+              libavcodec-dev libavformat-dev libswscale-dev \
+              libva-dev libvdpau-dev libdrm-dev libxkbcommon-dev wayland-protocols \
+              libcec-dev
+          run: |
+            cd /work/third_party/moonlight-qt
+            mkdir -p build && cd build
+            qmake6 ../moonlight-qt.pro
+            make -j"$(nproc)"
+            mkdir -p /work/deploy/update
+            install -m 755 app/moon-shell /work/deploy/update/moon-shell-arm64
+            echo "Built:"; file app/moon-shell || true
+
+      - name: Package release assets
+        run: |
+          cd deploy/update
+          echo "${{ steps.ver.outputs.version }}" > version
+          sha256sum moon-shell-arm64 > moon-shell-arm64.sha256
+          echo "--- assets ---"; ls -l; echo "--- checksum ---"; cat moon-shell-arm64.sha256
+          file moon-shell-arm64 | grep -q aarch64 || { echo "::error::binary is not aarch64"; exit 1; }
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Moon OS ${{ steps.ver.outputs.version }}
+          make_latest: true
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: |
+            deploy/update/version
+            deploy/update/moon-shell-arm64
+            deploy/update/moon-shell-arm64.sha256

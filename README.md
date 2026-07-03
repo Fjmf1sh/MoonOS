@@ -116,6 +116,64 @@ Moon OS is designed so you never need to reflash:
 - **Settings backup** → Settings → System → Export/Import settings to a USB
   drive (`moonos-config.tar.gz`).
 
+## Updates
+
+System settings → **Update** runs [update.sh](os-image/overlay/usr/lib/moonos/update.sh),
+which does two things:
+
+1. **Base OS packages** (`apt full-upgrade`) — works out of the box, needs
+   only a network connection.
+2. **Moon Shell itself** — off until you point it at a release channel, because
+   the shell is a compiled binary, not an apt package.
+
+Moon Shell self-updates are already pointed at `Fjmf1sh/MoonOS` in
+[`update.conf`](os-image/overlay/etc/moonos/update.conf).
+
+### Publishing an update from the GitHub website (recommended, nothing to run locally)
+
+A GitHub Actions workflow builds and publishes the update entirely in the cloud
+— ideal if you're on Windows and don't run shell scripts. It fires three ways:
+
+- **Automatically** whenever changes under `moon-shell/` (or the fork) land on
+  `main` — updates publish themselves. Add `[skip ci]` to a commit message to
+  suppress a release for that push.
+- **Manually** from the **Actions tab → "Release Moon OS update" → Run
+  workflow** (optionally type a version), or
+- by pushing a git tag like `v2026.07.10`.
+
+Auto-published versions are `YYYY.MM.DD.<run-number>`, so several releases in a
+day still register as newer on consoles.
+
+It compiles just the aarch64 `moon-shell` binary in a Debian-bookworm arm64
+container (matching the Pi's runtime), checksums it, and creates/updates the
+matching **Release** with `version`, `moon-shell-arm64`, and
+`moon-shell-arm64.sha256`. No local tools, no `gh` login — Actions uses the
+repo's built-in token. Workflow: [.github/workflows/release.yml](.github/workflows/release.yml).
+
+### Publishing from a command line (alternative)
+
+If you'd rather do it locally (Linux/WSL/git-bash with the GitHub CLI):
+
+```bash
+scripts/release.sh --build   # build + publish, or drop --build to publish an existing build
+```
+
+`release.sh` grabs the compiled binary the build exported to `deploy/update/`,
+regenerates its SHA-256, and creates/updates the GitHub Release. `--dry-run`
+previews without publishing.
+
+Consoles then compare their `/etc/moonos/version` against the release's
+`version`, download + checksum-verify the new binary, install it, and apply it
+on the next restart (offered from System settings). Everything is served over
+HTTPS from GitHub and verified by SHA-256 before install.
+
+> The very first flashed image can't update to its own version — publish a
+> *later*-dated build to exercise the update path. Version is the build date,
+> so newer builds always sort as newer.
+
+For a fleet you don't control the release cadence of, the more robust long-term
+option is a signed apt repository or A/B image updates — see the roadmap.
+
 ## Project status & known limitations
 
 **Status: code-complete, pre-hardware-validation.** Every feature above is

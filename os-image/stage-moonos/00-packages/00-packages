@@ -48,6 +48,19 @@ cec-utils
 plymouth
 plymouth-label
 
+# Fonts — Raspberry Pi OS Lite ships almost none, so the shell's icon glyphs
+# (emoji + symbols) render as empty "tofu" boxes without these. fontconfig
+# gives Qt automatic glyph fallback; DejaVu/Noto cover symbols/arrows/blocks,
+# Noto Color Emoji covers the 🎮 🖥 ⚙ … icons.
+fontconfig
+fonts-dejavu-core
+fonts-noto-core
+fonts-noto-color-emoji
+
+# Updates (fetch signed shell releases + OS package upgrades)
+curl
+ca-certificates
+
 # Misc
 alsa-utils
 rfkill

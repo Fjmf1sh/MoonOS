@@ -3,6 +3,7 @@
         <file>qml/qmldir</file>
         <file>qml/Theme.qml</file>
         <file>qml/MoonRoot.qml</file>
+        <file>qml/SpaceBackdrop.qml</file>
         <file>qml/HintBar.qml</file>
         <file>qml/FocusButton.qml</file>
         <file>qml/HostCard.qml</file>

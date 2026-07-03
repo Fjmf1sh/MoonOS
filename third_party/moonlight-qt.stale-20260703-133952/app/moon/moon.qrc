@@ -1,0 +1,34 @@
+<RCC>
+    <qresource prefix="/moon">
+        <file>qml/qmldir</file>
+        <file>qml/Theme.qml</file>
+        <file>qml/MoonRoot.qml</file>
+        <file>qml/HintBar.qml</file>
+        <file>qml/FocusButton.qml</file>
+        <file>qml/HostCard.qml</file>
+        <file>qml/GameCard.qml</file>
+        <file>qml/MoonDialog.qml</file>
+        <file>qml/PinDialog.qml</file>
+        <file>qml/MoonSpinner.qml</file>
+        <file>qml/OnScreenKeyboard.qml</file>
+        <file>qml/TextEntryDialog.qml</file>
+        <file>qml/SettingsScaffold.qml</file>
+        <file>qml/ToggleRow.qml</file>
+        <file>qml/OptionRow.qml</file>
+        <file>qml/SliderRow.qml</file>
+        <file>qml/ActionRow.qml</file>
+        <file>qml/HomeView.qml</file>
+        <file>qml/PairView.qml</file>
+        <file>qml/LibraryView.qml</file>
+        <file>qml/StreamView.qml</file>
+        <file>qml/RecoveryView.qml</file>
+        <file>qml/SettingsHubView.qml</file>
+        <file>qml/StreamSettingsView.qml</file>
+        <file>qml/NetworkSettingsView.qml</file>
+        <file>qml/BluetoothSettingsView.qml</file>
+        <file>qml/DisplaySettingsView.qml</file>
+        <file>qml/SystemSettingsView.qml</file>
+        <file>qml/DeveloperView.qml</file>
+        <file>qml/SetupWizardView.qml</file>
+    </qresource>
+</RCC>

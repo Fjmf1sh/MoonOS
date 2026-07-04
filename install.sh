@@ -52,36 +52,69 @@ check_host() {
     [ "$(uname -m)" = "aarch64" ] || die "Moon OS installs only on 64-bit arm64/aarch64 Raspberry Pi OS."
     [ -r /etc/os-release ] || die "Cannot read /etc/os-release."
     . /etc/os-release
+    local is_rpi_os=0
     case "${ID:-}:${ID_LIKE:-}:${PRETTY_NAME:-}" in
-        *raspbian*|*Raspberry\ Pi\ OS*|debian:*raspbian*) ;;
-        *) die "This does not look like Raspberry Pi OS. Install Raspberry Pi OS Lite 64-bit first." ;;
+        *raspbian*|*Raspberry\ Pi\ OS*|debian:*raspbian*) is_rpi_os=1 ;;
     esac
+    [ -r /etc/rpi-issue ] && is_rpi_os=1
     if [ -r /proc/device-tree/model ] &&
        ! tr -d '\0' < /proc/device-tree/model | grep -qi 'Raspberry Pi'; then
         die "This machine does not look like a Raspberry Pi."
     fi
+    if [ "$is_rpi_os" != "1" ] &&
+       ! grep -Rqs 'archive\.raspberrypi\.com\|raspbian\.raspberrypi\.com' \
+            /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+        die "This does not look like Raspberry Pi OS. Install Raspberry Pi OS Lite 64-bit first."
+    fi
+}
+
+first_available_package() {
+    local pkg
+    for pkg in "$@"; do
+        if apt-cache show "$pkg" >/dev/null 2>&1; then
+            printf '%s\n' "$pkg"
+            return 0
+        fi
+    done
+    return 1
 }
 
 install_dependencies() {
     log "Installing runtime and build dependencies"
     export DEBIAN_FRONTEND=noninteractive
     run apt-get update
-    run apt-get install -y --no-install-recommends \
+
+    local avcodec avformat swscale libcec qt_svg_dev
+    avcodec="$(first_available_package libavcodec61 libavcodec60 libavcodec59 || true)"
+    avformat="$(first_available_package libavformat61 libavformat60 libavformat59 || true)"
+    swscale="$(first_available_package libswscale8 libswscale7 libswscale6 || true)"
+    libcec="$(first_available_package libcec7 libcec6 || true)"
+    qt_svg_dev="$(first_available_package libqt6svg6-dev qt6-svg-dev || true)"
+
+    local packages=(
         ca-certificates curl git rsync file make g++ pkg-config \
         network-manager bluez polkitd plymouth plymouth-label \
         libqt6svg6 qt6-qpa-plugins \
         qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-templates \
         qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtqml \
         qml6-module-qtqml-models qml6-module-qtqml-workerscript \
-        libsdl2-2.0-0 libsdl2-ttf-2.0-0 libopus0 libavcodec59 libavformat59 \
-        libswscale6 libva2 libva-drm2 libva-wayland2 libva-x11-2 libvdpau1 \
-        libdrm2 libegl1 libgles2 libgbm1 libinput10 libxkbcommon0 libcec6 cec-utils \
+        libsdl2-2.0-0 libsdl2-ttf-2.0-0 libopus0 \
+        libva2 libva-drm2 libva-wayland2 libva-x11-2 libvdpau1 \
+        libdrm2 libegl1 libgles2 libgbm1 libinput10 libxkbcommon0 cec-utils \
         fontconfig fonts-dejavu-core fonts-noto-core fonts-noto-color-emoji \
         alsa-utils rfkill \
-        build-essential qt6-base-dev qt6-declarative-dev qt6-base-dev-tools libqt6svg6-dev \
+        build-essential qt6-base-dev qt6-declarative-dev qt6-base-dev-tools \
         libgl1-mesa-dev libegl1-mesa-dev libopus-dev libsdl2-dev libsdl2-ttf-dev \
         libssl-dev libavcodec-dev libavformat-dev libswscale-dev libva-dev \
         libvdpau-dev libdrm-dev libxkbcommon-dev wayland-protocols libcec-dev
+    )
+    [ -n "$avcodec" ] && packages+=("$avcodec")
+    [ -n "$avformat" ] && packages+=("$avformat")
+    [ -n "$swscale" ] && packages+=("$swscale")
+    [ -n "$libcec" ] && packages+=("$libcec")
+    [ -n "$qt_svg_dev" ] && packages+=("$qt_svg_dev")
+
+    run apt-get install -y --no-install-recommends "${packages[@]}"
 }
 
 ensure_moon_user() {

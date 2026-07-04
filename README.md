@@ -51,7 +51,8 @@ paths without creating duplicate services.
 64-bit. It checks the host OS and architecture, installs runtime and build
 dependencies, prepares the moonlight-qt fork, builds `moon-shell`, installs the
 overlay files into `/etc`, `/usr/lib`, and `/usr/share`, and enables
-`moon-shell.service`.
+`moon-shell.service`. The dependency resolver handles the Raspberry Pi OS
+bookworm/trixie FFmpeg and libcec package-name split.
 
 Useful options:
 
@@ -157,8 +158,7 @@ Moon OS is under active hardware validation on Raspberry Pi 4 and Pi 5.
 
 - The fork pins moonlight-qt at a specific public commit. See
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before rebasing it.
-- The installer targets Raspberry Pi OS Lite bookworm arm64. A trixie rebase
-  may require dependency name updates.
+- The installer targets Raspberry Pi OS Lite arm64 on bookworm or trixie.
 - Wi-Fi regulatory domain defaults still need a first-run region step.
 - Recent games are keyed by host name because upstream does not expose stable
   host UUIDs to QML.

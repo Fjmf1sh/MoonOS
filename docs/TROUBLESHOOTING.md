@@ -15,10 +15,17 @@ tr -d '\0' < /proc/device-tree/model
 ```
 
 Expected architecture is `aarch64`, and the OS should identify as Raspberry Pi
-OS or raspbian-derived. For CI dry runs only, use:
+OS or have Raspberry Pi apt sources enabled. For CI dry runs only, use:
 
 ```bash
 MOONOS_ALLOW_UNSUPPORTED=1 ./install.sh --dry-run --no-build --no-restart
+```
+
+If you are already invoking the script with `sudo`, put the override after
+`sudo` because sudo drops most leading environment variables:
+
+```bash
+sudo MOONOS_ALLOW_UNSUPPORTED=1 ./install.sh
 ```
 
 **Permission denied**
@@ -39,8 +46,8 @@ sudo apt update
 sudo apt install -f
 ```
 
-Then retry `./install.sh`. Moon OS targets Raspberry Pi OS Lite bookworm arm64;
-newer Debian/Raspberry Pi OS releases may need package name updates.
+Then retry `./install.sh`. Moon OS resolves the known Raspberry Pi OS
+bookworm/trixie FFmpeg and libcec runtime package names automatically.
 
 **`patch does not apply` from `prepare-fork.sh`**
 The pinned moonlight-qt submodule moved or the fork patch needs refreshing.

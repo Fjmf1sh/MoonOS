@@ -160,9 +160,9 @@ FocusScope {
                 ListView {
                     id: recentList
                     width: parent.width
-                    height: 240
+                    height: 260
                     orientation: ListView.Horizontal
-                    spacing: Theme.pad
+                    spacing: Theme.pad * 1.5
                     leftMargin: Theme.screenMargin
                     rightMargin: Theme.screenMargin
                     model: MoonSettings.recentGames
@@ -215,10 +215,10 @@ FocusScope {
                 ListView {
                     id: hostList
                     width: parent.width
-                    height: 250
+                    height: 270
                     visible: count > 0
                     orientation: ListView.Horizontal
-                    spacing: Theme.pad
+                    spacing: Theme.pad * 1.5
                     leftMargin: Theme.screenMargin
                     rightMargin: Theme.screenMargin
                     model: computerModel
@@ -270,9 +270,9 @@ FocusScope {
             ListView {
                 id: actionList
                 width: parent.width
-                height: 116
+                height: 132
                 orientation: ListView.Horizontal
-                spacing: Theme.pad
+                spacing: Theme.pad * 1.5
                 leftMargin: Theme.screenMargin
                 rightMargin: Theme.screenMargin
                 keyNavigationEnabled: true

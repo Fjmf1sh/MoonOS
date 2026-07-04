@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/moon">
         <file>qml/qmldir</file>
+        <file>assets/fonts/MaterialSymbolsRounded.ttf</file>
         <file>qml/Theme.qml</file>
         <file>qml/Icons.qml</file>
         <file>qml/MIcon.qml</file>

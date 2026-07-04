@@ -35,5 +35,5 @@ QtObject {
     // Motion
     readonly property int animFast: 120
     readonly property int animMed: 220
-    readonly property real focusScale: 1.045
+    readonly property real focusScale: 1.025
 }

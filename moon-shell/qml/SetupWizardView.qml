@@ -79,8 +79,8 @@ FocusScope {
 
     Column {
         anchors.centerIn: parent
-        width: parent.width * 0.62
-        spacing: Theme.pad * 1.5
+        width: Math.min(parent.width - Theme.screenMargin * 2, 1180)
+        spacing: Theme.pad * 1.25
 
         // Step dots
         Row {
@@ -338,7 +338,7 @@ FocusScope {
         // ---- nav buttons ----
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: Theme.pad
+            spacing: Theme.pad * 1.5
 
             FocusButton {
                 id: backBtn
@@ -346,6 +346,7 @@ FocusScope {
                 width: 260; height: 90
                 label: qsTr("Back")
                 KeyNavigation.right: nextBtn
+                KeyNavigation.up: wizard.stepPrimary
                 onActivated: wizard.back()
             }
             FocusButton {

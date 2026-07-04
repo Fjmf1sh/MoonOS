@@ -3,6 +3,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -17,6 +18,55 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #endif
+
+namespace {
+
+QString firstDisplayCardFromSysfs()
+{
+    QDir dri(QStringLiteral("/dev/dri"));
+    const QStringList cards =
+        dri.entryList({QStringLiteral("card*")}, QDir::System | QDir::Files, QDir::Name);
+    if (cards.isEmpty())
+        return QString();
+
+    bool sawHeadless = false;
+    QDir sysDrm(QStringLiteral("/sys/class/drm"));
+    for (const QString& card : cards) {
+        const QStringList connectors =
+            sysDrm.entryList({card + QStringLiteral("-*")}, QDir::Dirs | QDir::NoDotAndDotDot);
+
+        bool hasDisplay = false;
+        for (const QString& connector : connectors) {
+            QFile status(sysDrm.filePath(connector + QStringLiteral("/status")));
+            if (!status.exists()) {
+                hasDisplay = true;
+                break;
+            }
+            if (status.open(QIODevice::ReadOnly) &&
+                QString::fromLatin1(status.readAll()).startsWith(QStringLiteral("connected"))) {
+                hasDisplay = true;
+                break;
+            }
+        }
+
+        if (hasDisplay) {
+            if (sawHeadless)
+                return dri.filePath(card);
+            return QString();
+        }
+
+        sawHeadless = true;
+    }
+
+    return QString();
+}
+
+QString legacyKmsConfigPath()
+{
+    return QStringLiteral("/etc/moonos/eglfs-kms.json");
+}
+
+} // namespace
 
 DisplayService::DisplayService(MoonSettings* settings, QObject* parent)
     : QObject(parent), m_settings(settings)
@@ -136,10 +186,12 @@ bool DisplayService::setMode(const QString& mode)
     output[QStringLiteral("mode")] = mode;
 
     QJsonObject root;
-    if (!m_drmDevice.isEmpty())
-        root[QStringLiteral("device")] = m_drmDevice;
+    const QString drmDevice = !m_drmDevice.isEmpty() ? m_drmDevice : firstDisplayCardFromSysfs();
+    if (!drmDevice.isEmpty())
+        root[QStringLiteral("device")] = drmDevice;
     root[QStringLiteral("outputs")] = QJsonArray{output};
 
+    QDir().mkpath(QFileInfo(kmsConfigPath()).absolutePath());
     QSaveFile f(kmsConfigPath());
     if (!f.open(QIODevice::WriteOnly))
         return false;
@@ -155,6 +207,7 @@ bool DisplayService::setMode(const QString& mode)
 void DisplayService::clearModeOverride()
 {
     QFile::remove(kmsConfigPath());
+    QFile::remove(legacyKmsConfigPath());
     m_pendingMode.clear();
     emit pendingModeChanged();
 }

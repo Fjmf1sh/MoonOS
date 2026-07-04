@@ -42,7 +42,7 @@ SettingsScaffold {
 
     ActionRow {
         label: qsTr("Reset resolution to automatic")
-        enabled: DisplayService.pendingMode !== "" || true
+        enabled: DisplayService.pendingMode !== ""
         onActivated: {
             DisplayService.clearModeOverride()
             window.confirm(qsTr("Use automatic resolution?"),

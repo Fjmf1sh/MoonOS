@@ -437,25 +437,32 @@ void NetworkService::watchActivation(const QDBusObjectPath& activeConnPath)
 {
     // Poll the ActiveConnection state until it activates (2) or fails (4).
     const QString path = activeConnPath.path();
+    if (path.isEmpty() || path == QStringLiteral("/")) {
+        setConnecting(false);
+        refresh();
+        emit connectFinished(false,
+            QStringLiteral("Could not join the network. Check the password and try again."));
+        return;
+    }
+
     auto* timer = new QTimer(this);
-    auto* attempts = new int(0);
     timer->setInterval(500);
-    connect(timer, &QTimer::timeout, this, [this, timer, attempts, path] {
+    connect(timer, &QTimer::timeout, this, [this, timer, path, attempts = 0]() mutable {
         const uint state = getProp(path,
             QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"),
             QStringLiteral("State")).toUInt();
 
-        const bool timedOut = ++(*attempts) > 60; // 30 seconds
+        const bool timedOut = ++attempts > 60; // 30 seconds
         if (state == 2) { // NM_ACTIVE_CONNECTION_STATE_ACTIVATED
+            timer->stop();
             timer->deleteLater();
-            delete attempts;
             setConnecting(false);
             refresh();
             emit connectFinished(true, QString());
         }
         else if (state == 4 || state == 0 || timedOut) { // DEACTIVATED / gone
+            timer->stop();
             timer->deleteLater();
-            delete attempts;
             setConnecting(false);
             refresh();
             emit connectFinished(false,

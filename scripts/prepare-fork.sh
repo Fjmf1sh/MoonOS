@@ -46,6 +46,7 @@ rm -rf "$UPSTREAM/app/moon"
 mkdir -p "$UPSTREAM/app/moon"
 cp -a "$REPO_ROOT/moon-shell/moon.pri" \
       "$REPO_ROOT/moon-shell/moon.qrc" \
+      "$REPO_ROOT/moon-shell/assets" \
       "$REPO_ROOT/moon-shell/src" \
       "$REPO_ROOT/moon-shell/qml" \
       "$UPSTREAM/app/moon/"

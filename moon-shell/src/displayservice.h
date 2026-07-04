@@ -8,8 +8,8 @@ class MoonSettings;
 // HDMI display and audio-output management for the KMS/EGLFS session.
 //
 // Modes are enumerated straight from the DRM connectors (libdrm). Applying a
-// mode writes the Qt EGLFS KMS config (/etc/moonos/eglfs-kms.json) which the
-// shell reads on its next start — mode changes take effect after a UI
+// mode writes the Qt EGLFS KMS config into Moon OS state, which the shell
+// reads on its next start — mode changes take effect after a UI
 // restart, which the settings screen offers ("Apply & restart interface").
 //
 // Audio outputs are enumerated from /proc/asound/cards; the selection is
@@ -35,7 +35,7 @@ public:
     Q_INVOKABLE void refresh();
 
     // Stages a mode into the EGLFS KMS config. Returns false if it could not
-    // be written (e.g. bad permissions on /etc/moonos).
+    // be written.
     Q_INVOKABLE bool setMode(const QString& mode);
     Q_INVOKABLE void clearModeOverride();
 

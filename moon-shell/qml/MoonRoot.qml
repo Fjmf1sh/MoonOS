@@ -17,6 +17,12 @@ ApplicationWindow {
     title: "Moon OS"
     color: "#000000"
 
+    readonly property real physicalScale: {
+        var dpi = Screen.pixelDensity > 0 ? Screen.pixelDensity * 25.4 : 96
+        return Math.max(0.85, Math.min(2.25, dpi / 96.0))
+    }
+    readonly property real safeScale: MoonSettings.safeAreaPct / 100.0
+
     // ---- global helpers available to every view via context ----------------
 
     function pushView(url, props) {
@@ -67,8 +73,10 @@ ApplicationWindow {
 
     Item {
         id: safeArea
-        anchors.fill: parent
-        scale: MoonSettings.safeAreaPct / 100.0
+        width: parent.width / window.physicalScale
+        height: parent.height / window.physicalScale
+        anchors.centerIn: parent
+        scale: window.physicalScale * window.safeScale
 
         StackView {
             id: stackView

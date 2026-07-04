@@ -21,6 +21,9 @@
      * To try again from here, log in as  moon  (password: moonos)
        and run:   sudo systemctl restart moon-shell
 
+     * Try updating MOON OS:
+        If you can run sudo /var/lib/moonos/update.sh && sudo reboot
+
      * To wipe settings and start fresh:
          sudo touch /var/lib/moonos/.factory-reset && sudo reboot
 

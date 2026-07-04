@@ -33,7 +33,7 @@ done
 
 if [ "$USE_DOCKER" = "1" ]; then
     echo "==> Preparing the Moonlight fork"
-    "$REPO_ROOT/scripts/prepare-fork.sh"
+    bash "$REPO_ROOT/scripts/prepare-fork.sh"
 
     echo "==> Building moon-shell in Debian bookworm Docker"
     docker run --rm \
@@ -55,11 +55,11 @@ if [ "$USE_DOCKER" = "1" ]; then
                 libcec-dev
 
             export LC_ALL=C LANG=C TERM=dumb GCC_COLORS=
-            SKIP_DEPS=1 /work/scripts/build-shell.sh
+            SKIP_DEPS=1 bash /work/scripts/build-shell.sh
         '
 
     if [ "$PACKAGE_UPDATE" = "1" ]; then
-        "$REPO_ROOT/scripts/package-update.sh" "$UPSTREAM/build/app/moon-shell"
+        bash "$REPO_ROOT/scripts/package-update.sh" "$UPSTREAM/build/app/moon-shell"
         if [ -n "$VERSION" ]; then
             echo "$VERSION" > "$REPO_ROOT/deploy/update/version"
             ( cd "$REPO_ROOT/deploy/update" && sha256sum moon-shell-arm64 > moon-shell-arm64.sha256 )
@@ -69,7 +69,7 @@ if [ "$USE_DOCKER" = "1" ]; then
 fi
 
 if [ ! -f "$UPSTREAM/app/moon/moon.pri" ]; then
-    "$REPO_ROOT/scripts/prepare-fork.sh"
+    bash "$REPO_ROOT/scripts/prepare-fork.sh"
 fi
 
 if [ "${SKIP_DEPS:-0}" != "1" ]; then

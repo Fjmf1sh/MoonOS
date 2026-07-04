@@ -125,13 +125,29 @@ jobs:
             cd /work/third_party/moonlight-qt
             mkdir -p build && cd build
             qmake6 ../moonlight-qt.pro
+            echo "--- generated makefiles ---"
+            find . -maxdepth 2 -name "Makefile*" -print | sort
+            echo "---------------------------"
             # Capped (not $(nproc)) because Qt/C++ builds can exceed the
             # runner's memory and get silently OOM-killed with no compiler
             # diagnostic.
-            make -j2
+            if [ -f Makefile ]; then
+              make -j2 release
+            elif [ -f Makefile.Release ]; then
+              make -f Makefile.Release -j2
+            else
+              echo "ERROR: qmake did not generate Makefile or Makefile.Release" >&2
+              exit 1
+            fi
+            MOON_SHELL_BIN="$(find app -type f -name moon-shell -perm /111 | sort | head -1)"
+            if [ -z "$MOON_SHELL_BIN" ]; then
+              echo "ERROR: moon-shell binary was not produced" >&2
+              find app -maxdepth 4 -type f -name "moon-shell*" -print >&2 || true
+              exit 1
+            fi
             mkdir -p /work/deploy/update
-            install -m 755 app/moon-shell /work/deploy/update/moon-shell-arm64
-            echo "Built:"; file app/moon-shell || true
+            install -m 755 "$MOON_SHELL_BIN" /work/deploy/update/moon-shell-arm64
+            echo "Built:"; file "$MOON_SHELL_BIN" || true
             chown -R "$(stat -c %u /work):$(stat -c %g /work)" /work/deploy
             '
 

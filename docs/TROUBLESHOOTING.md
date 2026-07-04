@@ -84,6 +84,14 @@ of just the bare parse failure. Notably, the identical `qmake6
 container, the difference is something about that container setup, not the
 moonlight-qt source.
 
+**`make: *** No targets specified and no makefile found. Stop.` right after
+`qmake6` succeeds**
+moonlight-qt sets `CONFIG += debug_and_release`, and on some qmake/container
+combinations this produces `Makefile.Release` instead of a generic
+`Makefile`. `release.yml` prints the generated makefiles and builds either
+`make release` or `make -f Makefile.Release`, then finds the produced
+`moon-shell` binary under `app/`.
+
 **Job runs out of disk space or gets silently killed mid-`make`**
 GitHub-hosted runners have ~14GB free by default; Qt/FFmpeg dev headers plus
 the container image can exceed that, and a wide `make -j$(nproc)` can get

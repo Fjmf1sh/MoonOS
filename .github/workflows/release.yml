@@ -115,7 +115,11 @@ jobs:
             echo "--- compiler probe diagnostics ---"
             g++ --version
             g++ -dumpmachine
-            echo | g++ -E -dM -x c++ - | head -5
+            # Avoid piping directly into head here: with pipefail enabled,
+            # head can close early and turn this diagnostic probe into a
+            # build-stopping SIGPIPE from g++.
+            g++ -E -dM -x c++ /dev/null > /tmp/moonos-compiler-macros.txt
+            head -5 /tmp/moonos-compiler-macros.txt
             echo "-----------------------------------"
 
             cd /work/third_party/moonlight-qt

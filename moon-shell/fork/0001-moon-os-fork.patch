@@ -30,6 +30,25 @@ index 532e5d0..b846668 100644
  #if defined(Q_OS_WIN32)
  #define IS_UNSPECIFIED_HANDLE(x) ((x) == INVALID_HANDLE_VALUE || (x) == NULL)
  
+@@ -558,10 +562,17 @@ int main(int argc, char *argv[])
+                 QString cardOverride = WMUtils::getDrmCardOverride();
+                 if (!cardOverride.isEmpty()) {
+                     if (eglfsConfigFile.open()) {
+                         qInfo() << "Overriding default Qt EGLFS card selection to" << cardOverride;
++#ifdef MOON_OS
++                        QByteArray eglfsConfig = QString("{ \"device\": \"%1\" }").arg(cardOverride).toUtf8();
++                        eglfsConfigFile.write(eglfsConfig);
++                        eglfsConfigFile.flush();
++                        eglfsConfigFile.close();
++#else
+                         QTextStream(&eglfsConfigFile) << "{ \"device\": \"" << cardOverride << "\" }";
+-                        qputenv("QT_QPA_EGLFS_KMS_CONFIG", eglfsConfigFile.fileName().toUtf8());
+                         eglfsConfigFile.close();
++#endif
++                        qputenv("QT_QPA_EGLFS_KMS_CONFIG", eglfsConfigFile.fileName().toUtf8());
+                     }
+                 }
+             }
 @@ -1040,8 +1044,15 @@ int main(int argc, char *argv[])
          engine.rootContext()->setContextProperty("initialView", initialView);
          engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);

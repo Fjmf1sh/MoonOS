@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Builds the flashable Moon OS image: deploy/moon-os-rpi4-rpi5.img
+# Legacy unsupported image builder: deploy/moon-os-rpi4-rpi5.img
 #
 # Must run on Debian/Ubuntu (or the pi-gen Docker path) as root, with
 # qemu-user-static + binfmt for the arm64 chroot. See README.md
 # "Building the image" for the exact host requirements.
 #
 # Usage:
-#   sudo os-image/build.sh            # native pi-gen build
-#   sudo os-image/build.sh --docker   # containerized build (needs Docker)
+#   sudo legacy-image-build/build.sh            # native pi-gen build
+#   sudo legacy-image-build/build.sh --docker   # containerized build
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PI_GEN_DIR="$REPO_ROOT/os-image/pi-gen"
+PI_GEN_DIR="$REPO_ROOT/legacy-image-build/pi-gen"
 PI_GEN_REPO="${PI_GEN_REPO:-https://github.com/RPi-Distro/pi-gen}"
 # The arm64 branch produces 64-bit images — required for Pi 4/5 and the
 # V4L2 stateless HEVC decode path moonlight uses.
@@ -65,8 +65,8 @@ rm -rf "$PI_GEN_DIR/stage2/04-cloud-init"
 
 echo "==> Installing the Moon OS stage into pi-gen"
 rm -rf "$PI_GEN_DIR/stage-moonos"
-cp -a "$REPO_ROOT/os-image/stage-moonos" "$PI_GEN_DIR/stage-moonos"
-cp -a "$REPO_ROOT/os-image/overlay" "$PI_GEN_DIR/stage-moonos/overlay"
+cp -a "$REPO_ROOT/legacy-image-build/stage-moonos" "$PI_GEN_DIR/stage-moonos"
+cp -a "$REPO_ROOT/install/overlay" "$PI_GEN_DIR/stage-moonos/overlay"
 
 echo "==> Bundling prepared source for the in-chroot build"
 SRC_TAR="$PI_GEN_DIR/stage-moonos/02-build-shell/files/moonlight-src.tar.gz"
@@ -129,5 +129,4 @@ fi
 
 echo ""
 echo "Done: $REPO_ROOT/deploy/moon-os-rpi4-rpi5.img (Moon OS $VERSION)"
-echo "Flash it with Raspberry Pi Imager → 'Use custom image'."
-echo "Publish this build as an update with:  scripts/release.sh"
+echo "Legacy image build complete. This path is unsupported; prefer ./install.sh."

@@ -1,6 +1,5 @@
 #!/bin/bash
-# One-time provisioning on the first boot of a freshly flashed image.
-# (Filesystem expansion is handled by Raspberry Pi OS's own init_resize.)
+# One-time provisioning after install.
 set -e
 
 STATE_DIR=/var/lib/moonos

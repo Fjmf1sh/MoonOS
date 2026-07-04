@@ -33,7 +33,7 @@ SettingsScaffold {
     }
     ActionRow {
         label: qsTr("System")
-        sublabel: qsTr("Updates, developer mode, factory reset")
+        sublabel: qsTr("Update, uninstall, developer mode, factory reset")
         onActivated: window.pushView("qrc:/moon/qml/SystemSettingsView.qml")
     }
 }

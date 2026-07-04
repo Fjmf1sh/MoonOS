@@ -1,8 +1,8 @@
-name: Release Moon OS update
+name: Legacy release Moon OS update
 
-# Publishes a Moon Shell self-update to GitHub Releases so flashed consoles can
-# pull it (System settings -> Update). Runs entirely in the cloud — nothing to
-# run locally. Trigger it two ways:
+# Archived unsupported workflow from the retired release-binary updater.
+# Publishes a Moon Shell binary to GitHub Releases. Supported installs now use
+# the git updater and rerun install.sh instead. Trigger it two ways:
 #   * GitHub website: Actions tab -> "Release Moon OS update" -> Run workflow
 #   * or push a git tag like v2026.07.10
 #
@@ -83,13 +83,12 @@ jobs:
       - name: Compile moon-shell (aarch64)
         run: |
           set -ex
-          JOBS=2 bash scripts/build-shell.sh \
-            --docker \
-            --package-update \
-            --version "${{ steps.ver.outputs.version }}"
+          JOBS=2 bash scripts/build-shell.sh --docker
 
       - name: Package release assets
         run: |
+          mkdir -p deploy/update
+          cp -f third_party/moonlight-qt/build/app/moon-shell deploy/update/moon-shell-arm64
           cd deploy/update
           echo "${{ steps.ver.outputs.version }}" > version
           sha256sum moon-shell-arm64 > moon-shell-arm64.sha256

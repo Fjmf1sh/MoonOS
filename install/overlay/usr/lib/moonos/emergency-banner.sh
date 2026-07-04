@@ -14,15 +14,14 @@
    Your paired PCs and settings are safe.
 
    What to do:
-     * Pull the SD card and open the small "bootfs" drive on any
-       computer. Read  moon-shell.log  (and moon-recovery.log).
-       Those files contain the exact error.
+     * Log in with your normal Raspberry Pi OS user and read:
+         sudo journalctl -u moon-shell -u moon-recovery --no-pager
 
-     * To try again from here, log in as  moon  (password: moonos)
-       and run:   sudo systemctl restart moon-shell
+     * To try again from here:
+         sudo systemctl restart moon-shell
 
-     * Try updating MOON OS:
-        If you can run sudo /var/lib/moonos/update.sh && sudo reboot
+     * Try updating Moon OS:
+         sudo systemctl start moon-update && sudo reboot
 
      * To wipe settings and start fresh:
          sudo touch /var/lib/moonos/.factory-reset && sudo reboot

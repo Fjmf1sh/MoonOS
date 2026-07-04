@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
-# Moon OS — one-command update releaser.
+# Moon OS legacy one-command update releaser.
 #
 # Extracts the compiled Moon Shell binary from the latest build and publishes
-# it as a GitHub Release so flashed consoles can self-update (System → Update).
+# it as a GitHub Release for the retired release-binary updater.
 #
-#   scripts/release.sh                 # publish the current build
-#   scripts/release.sh --build         # build the image first, then publish
-#   scripts/release.sh --version 2026.07.10
-#   scripts/release.sh --repo owner/repo --notes "Fixes controller nav"
-#   scripts/release.sh --dry-run       # show what would happen, publish nothing
+#   legacy-image-build/release.sh --repo owner/repo
+#   legacy-image-build/release.sh --build --repo owner/repo
+#   legacy-image-build/release.sh --version 2026.07.10 --repo owner/repo
+#   legacy-image-build/release.sh --dry-run --repo owner/repo
 #
 # Requirements: git-bash/WSL/Linux with the GitHub CLI (`gh`) authenticated
-# (`gh auth login`). For --build you also need Docker (as with os-image/build.sh).
+# (`gh auth login`). For --build you also need Docker.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UPDATE_DIR="$REPO_ROOT/deploy/update"
-CONF="$REPO_ROOT/os-image/overlay/etc/moonos/update.conf"
 
 DO_BUILD=0
 DRY_RUN=0
@@ -42,11 +40,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# ---- resolve target repo (default: MOONOS_UPDATE_REPO from update.conf) -----
-if [ -z "$REPO" ] && [ -r "$CONF" ]; then
-    REPO="$(sed -n 's/^[[:space:]]*MOONOS_UPDATE_REPO="\(.*\)".*/\1/p' "$CONF" | head -1)"
-fi
-[ -n "$REPO" ] || die "no target repo. Set MOONOS_UPDATE_REPO in $CONF or pass --repo owner/repo."
+[ -n "$REPO" ] || die "no target repo. Pass --repo owner/repo."
 
 # ---- tooling checks ---------------------------------------------------------
 command -v gh >/dev/null 2>&1 || die "GitHub CLI 'gh' not found. Install it and run 'gh auth login'."
@@ -56,18 +50,18 @@ fi
 
 # ---- build if asked ---------------------------------------------------------
 if [ "$DO_BUILD" = "1" ]; then
-    echo "==> Building the image (this compiles moon-shell)…"
-    sudo "$REPO_ROOT/os-image/build.sh" --docker
+    echo "==> Building the legacy image (this compiles moon-shell)..."
+    sudo "$REPO_ROOT/legacy-image-build/build.sh" --docker
 fi
 
 # ---- locate the release assets ----------------------------------------------
 # Preferred: artifacts the build dropped in deploy/update/. Fallback: extract
 # from the pi-gen work tree via package-update.sh (native builds only).
 if [ ! -f "$UPDATE_DIR/moon-shell-arm64" ]; then
-    echo "==> No prebuilt artifact in deploy/update; trying package-update.sh…"
-    "$REPO_ROOT/scripts/package-update.sh" || true
+    echo "==> No prebuilt artifact in deploy/update; trying package-update.sh..."
+    "$REPO_ROOT/legacy-image-build/package-update.sh" || true
 fi
-[ -f "$UPDATE_DIR/moon-shell-arm64" ] || die "no moon-shell-arm64 found. Run a build first (or: scripts/release.sh --build)."
+[ -f "$UPDATE_DIR/moon-shell-arm64" ] || die "no moon-shell-arm64 found. Run a build first."
 
 # Ensure version + checksum exist and are consistent.
 if [ -z "$VERSION" ]; then
@@ -95,7 +89,7 @@ echo "  assets  : moon-shell-arm64 ($(du -h "$UPDATE_DIR/moon-shell-arm64" | cut
 echo ""
 
 if [ "$DRY_RUN" = "1" ]; then
-    echo "(dry run — nothing published)"
+    echo "(dry run - nothing published)"
     exit 0
 fi
 
@@ -107,15 +101,15 @@ ASSETS=(
 )
 
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-    echo "==> Release $TAG exists — updating its assets…"
+    echo "==> Release $TAG exists - updating its assets..."
     gh release upload "$TAG" "${ASSETS[@]}" --repo "$REPO" --clobber
     gh release edit "$TAG" --repo "$REPO" --latest --notes "$NOTES" $EXTRA_FLAGS
 else
-    echo "==> Creating release $TAG…"
+    echo "==> Creating release $TAG..."
     gh release create "$TAG" "${ASSETS[@]}" \
         --repo "$REPO" --title "Moon OS $VERSION" --notes "$NOTES" --latest $EXTRA_FLAGS
 fi
 
 echo ""
 echo "Published: https://github.com/$REPO/releases/tag/$TAG"
-echo "Consoles on an older build will now offer this via System settings → Update."
+echo "Legacy release published. Supported installs now update from git instead."

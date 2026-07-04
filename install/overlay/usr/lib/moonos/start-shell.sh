@@ -62,7 +62,11 @@ use_auto_eglfs_card_config() {
 }
 
 echo "===== Moon OS shell start: $(date -Is) ====="
-echo "mode        : ${MOONOS_RECOVERY:+RECOVERY}${MOONOS_RECOVERY:-normal}"
+if [ "${MOONOS_RECOVERY:-0}" = "1" ]; then
+    echo "mode        : recovery"
+else
+    echo "mode        : normal"
+fi
 echo "user        : $(id -un) ($(id -u))  groups: $(id -Gn)"
 echo "qt platform : ${QT_QPA_PLATFORM:-auto (eglfs expected)}"
 echo -n "dri devices : "; ls /dev/dri 2>/dev/null | tr '\n' ' '; echo

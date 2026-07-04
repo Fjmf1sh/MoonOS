@@ -28,8 +28,8 @@ below runs inside that process except the root helpers:
    privileged actions via polkit-authorized D-Bus only
 ┌────────────────────────────────────────────────────────────┐
 │ root helpers, each its own oneshot systemd unit            │
-│ moon-update · moon-devmode-{on,off} · moon-config-{ex,im}  │
-│ moon-firstboot · moon-factory-reset                        │
+│ moon-update · moon-uninstall · moon-devmode-{on,off}       │
+│ moon-config-{ex,im} · moon-firstboot · moon-factory-reset  │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -168,7 +168,7 @@ and coding agents.
   icon glyphs (🎮 🖥 ⚙ ‹ › …) rendering as empty "tofu" boxes. `fontconfig` +
   `fonts-dejavu-core` + `fonts-noto-core` + `fonts-noto-color-emoji` are
   installed, with a fallback rule
-  ([`/etc/fonts/local.conf`](../os-image/overlay/etc/fonts/local.conf))
+  ([`/etc/fonts/local.conf`](../install/overlay/etc/fonts/local.conf))
   appending the emoji font to every font-family match so no glyph can fall
   through.
 
@@ -216,56 +216,43 @@ reintroduced:
 
 - Shell runs as `moon` with a logind session on tty1 (device ACLs give
   `/dev/dri`, `/dev/input`).
-- polkit rules ([50-moonos.rules](../os-image/overlay/etc/polkit-1/rules.d/50-moonos.rules))
+- polkit rules ([50-moonos.rules](../install/overlay/etc/polkit-1/rules.d/50-moonos.rules))
   allow exactly: reboot/power-off, NetworkManager control, and
   `manage-units` restricted to units whose name starts with `moon-`.
 - SSH is off by default; developer mode enables it explicitly and per-device
   host keys are generated on first use.
 
-### Update / release pipeline
+### Install / update pipeline
 
-Moon Shell is a compiled binary, not an apt package, so "Update" in System
-settings does two independent things (`update.sh`):
+Moon OS installs onto an existing Raspberry Pi OS Lite 64-bit system. The
+root `install.sh` script verifies the host, installs runtime/build
+dependencies, builds `moon-shell` from the prepared moonlight-qt fork, copies
+the runtime overlay from [`install/overlay`](../install/overlay), records the
+checkout path in `/etc/moonos/install.conf`, and enables the expected systemd
+units. The script is intentionally idempotent: re-running it updates files and
+services instead of creating duplicate state.
 
-1. **`apt full-upgrade`** for the base OS — always available, no configuration
-   needed.
-2. **Moon Shell self-update** — downloads a new `moon-shell` binary from a
-   GitHub Release, gated by `MOONOS_UPDATE_REPO` in
-   [`/etc/moonos/update.conf`](../os-image/overlay/etc/moonos/update.conf).
-   The console compares its `/etc/moonos/version` against the release's
-   `version` asset (string-sorted, so a console never "updates" to something
-   older or equal), downloads `moon-shell-arm64`, verifies it against
-   `moon-shell-arm64.sha256` (refuses to install on mismatch), and applies it
-   on the next shell restart.
+"Update Moon OS" in System settings starts `moon-update.service`, which runs
+[`update.sh`](../install/overlay/usr/lib/moonos/update.sh). The updater:
 
-Releases are produced entirely in the cloud by
-[`.github/workflows/release.yml`](../.github/workflows/release.yml): it
-compiles just the `moon-shell` binary (not the whole image) on GitHub's
-native arm64 hosted runner, inside a Debian-bookworm Docker container, then
-publishes/updates a GitHub Release with the three assets above. Native arm64
-keeps the build out of QEMU user-mode emulation while the container keeps the
-binary aligned with the Pi's Debian bookworm runtime. It runs on a push to
-`main` touching `moon-shell/**` or the pinned submodule commit, on a manual
-"Run workflow" click, or on a `v*` tag. A `scripts/release.sh` +
-`scripts/package-update.sh` pair does the same thing from a local
-Linux/WSL/git-bash shell with the GitHub CLI, for anyone who'd rather not use
-the cloud path.
+1. Optionally runs `apt full-upgrade` (`DO_APT=0` in
+   [`update.conf`](../install/overlay/etc/moonos/update.conf) disables this).
+2. Reads `MOONOS_REPO_DIR` from `/etc/moonos/install.conf`.
+3. Runs `git fetch --all --prune` and, on a branch checkout,
+   `git pull --ff-only`.
+4. Re-runs `install.sh --from-update` so new code, helper scripts,
+   dependencies, and units are applied.
+5. Migrates/removes known leftovers from the old image/release updater path.
+6. Audits the expected systemd units and logs to `/var/lib/moonos/update.log`.
 
-CI-specific gotchas already hit and fixed once, worth knowing before touching
-`release.yml` again:
-- **Keep the release job on a native arm64 runner.** The old
-  `uraimo/run-on-arch-action` path used QEMU user-mode emulation and failed
-  before compilation when Debian's `python3` post-install script exited under
-  emulation. Use GitHub's current hosted arm64 runner label and a normal
-  `debian:bookworm` Docker container instead of adding QEMU/binfmt setup.
-- **`qmake6` can fail to parse the compiler's search-path output inside the
-  release container** (`failed to parse default search paths from compiler
-  output`), even though the identical call succeeds in the pi-gen chroot
-  `os-image/build.sh` uses — a locale/output-formatting issue in qmake's
-  compiler probing, not a source problem. Worked around by forcing
-  `LC_ALL=C LANG=C TERM=dumb GCC_COLORS=` right before `qmake6`; a compiler
-  diagnostic sample is printed just before it so a recurrence is diagnosable
-  from the log instead of another guess.
+Uninstall is also a first-class system action. Settings starts
+`moon-uninstall.service`, which runs `/usr/lib/moonos/uninstall.sh --yes`.
+The root `uninstall.sh` asks for confirmation when run manually, stops Moon OS
+services, restores `getty@tty1.service`, removes installed files and units,
+and removes the `moon` user only when the installer created it.
+
+The former pi-gen image builder and GitHub Release binary updater are archived
+under [`legacy-image-build/`](../legacy-image-build) for reference only.
 
 ### State map
 
@@ -275,9 +262,10 @@ CI-specific gotchas already hit and fixed once, worth knowing before touching
 | `/var/lib/moonos/{update-status,config-io-status,devmode}` | Helper status/flags | root (world-readable) |
 | `/var/lib/moonos/update.log` | Full transcript of the last update run | root |
 | `/home/moon/.config/Moonlight Game Streaming Project/` | Upstream: paired hosts, client cert, stream prefs | moon |
-| `/etc/moonos/eglfs-kms.json` | Staged display mode | moon (group-writable dir) |
-| `/etc/moonos/update.conf` | `MOONOS_UPDATE_REPO`, whether apt upgrades run | root |
-| `/etc/moonos/version` | Installed Moon Shell version (compared against Release `version`) | root |
+| `/var/lib/moonos/eglfs-kms.json` | Staged display mode | moon |
+| `/etc/moonos/install.conf` | Installed git checkout path and install model | root |
+| `/etc/moonos/update.conf` | Whether apt upgrades run during Moon OS update | root |
+| `/etc/moonos/version` | Installed git describe/version string | root |
 | `/boot/firmware/moon-shell.log`, `moon-recovery.log` | Startup diagnostics for the shell/recovery unit, readable from any OS | root |
 | `/etc/NetworkManager/system-connections/` | Saved Wi-Fi | root (via NM D-Bus) |
 | `/var/lib/bluetooth/` | Pairings | root (via BlueZ D-Bus) |

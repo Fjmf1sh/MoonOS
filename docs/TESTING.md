@@ -1,124 +1,125 @@
-# Moon OS testing checklist
+# Moon OS Testing Checklist
 
-Hardware matrix: run the full list on **Pi 4 (4 GB)** and **Pi 5**, each
-over HDMI to at least one TV and one monitor. Host: Sunshine (latest) on
-Windows and on Linux.
+Hardware matrix: run the full list on Pi 4 and Pi 5, each over HDMI to at
+least one TV and one monitor. Host: Sunshine on Windows and Linux.
 
-## Build & flash
-- [ ] `sudo os-image/build.sh` completes; `deploy/moon-os-rpi4-rpi5.img` exists
-- [ ] Image flashes with Raspberry Pi Imager (custom image path)
-- [ ] Rootfs auto-expands to the full SD card on first boot
+## Install Round Trip
 
-## Boot experience
-- [ ] Power-on → Moon OS splash (no rainbow text, no scrolling kernel log)
-- [ ] Splash → shell handoff without a console flash
-- [ ] Cold boot to interactive Home in < 30 s (Pi 4) / < 20 s (Pi 5)
-- [ ] No getty/login prompt on any connected display
-- [ ] Reboot and power-off from the UI work; TV shows no Linux text during shutdown
-- [ ] All icon glyphs render (no empty "tofu" boxes) — home cards, hint bar,
-      settings rows, emoji in the wizard
-- [ ] `moon-shell.log` appears on the boot (FAT) partition after any boot,
-      readable from a Windows/Mac machine, and its header lines
-      (user/groups, DRM master, Qt platform) look sane
-- [ ] Force a crash loop (`sudo systemctl kill -s SEGV moon-shell` ×4 fast) →
-      Recovery screen appears, not a black screen
-- [ ] Force recovery to also fail (rename `RecoveryView.qml` temporarily on a
-      test build) → emergency text banner + login prompt appears, never a
-      silent black screen
+- [ ] Fresh Raspberry Pi OS Lite 64-bit boots and has network access
+- [ ] `git clone --recurse-submodules <repo> moon-os`
+- [ ] `cd moon-os && ./install.sh` completes
+- [ ] Re-running `./install.sh` completes without duplicate users, services, or units
+- [ ] `systemctl is-enabled moon-shell moon-update moon-uninstall` reports expected units
+- [ ] `getty@tty1.service` is disabled after install
+- [ ] `moon-shell` starts after reboot
+- [ ] `scripts/smoke-install-roundtrip.sh` passes in CI
 
-## First-boot wizard
-- [ ] "Welcome to Moon OS" wizard appears exactly once
-- [ ] Keyboard-only, controller-only, and CEC-remote-only navigation all complete it
-- [ ] Wi-Fi step skipped automatically when Ethernet is up
-- [ ] Safe-area slider visibly shrinks the UI live; persists after reboot
-- [ ] Wizard never reappears after completion (and does reappear after factory reset)
+## Boot Experience
+
+- [ ] Power-on -> Moon OS splash -> Moon Shell
+- [ ] Cold boot to interactive Home in under 30 s on Pi 4 and under 20 s on Pi 5
+- [ ] No login prompt on the connected display during normal operation
+- [ ] All icon glyphs render
+- [ ] `/boot/firmware/moon-shell.log` exists after boot
+- [ ] Forced crash loop starts Recovery
+- [ ] Forced recovery failure starts emergency text banner
+
+## First-Run Wizard
+
+- [ ] Wizard appears exactly once after install
+- [ ] Keyboard-only, controller-only, mouse-only, and CEC-remote-only navigation complete it
+- [ ] Wi-Fi step skips automatically when Ethernet is up
+- [ ] Safe-area slider updates live and persists after reboot
+- [ ] Factory reset makes the wizard appear again
 
 ## Network
-- [ ] Scan lists nearby SSIDs sorted by strength, lock icon on secured ones
-- [ ] Join WPA2 network via on-screen keyboard (controller only)
-- [ ] Wrong password → friendly error, retry path works
-- [ ] Saved network auto-reconnects after reboot; Forget removes it
-- [ ] Status strip shows IP, SSID, signal %; updates within ~10 s of changes
 
-## Controllers
-- [ ] Xbox One/Series, DualShock 4, DualSense, 8BitDo pair from the UI
-- [ ] Setup wizard auto-discovers and pairs a controller in pairing mode with
-      no manual navigation required (hold pair button, it just connects)
-- [ ] Battery % shows where supported; Forget + re-pair works
-- [ ] Paired controller reconnects on power-up without touching the UI
-- [ ] UI navigation: A select, B back, X context actions, D-pad + sticks move focus
-- [ ] From the top row of the Network and Bluetooth screens, pressing Up
-      reaches the Wi-Fi/Bluetooth toggle and Scan buttons (not stuck)
-- [ ] USB controller works with zero pairing (plug and go)
+- [ ] Wi-Fi screen uses side-by-side known and nearby layout
+- [ ] Scan lists SSIDs sorted by strength, with lock icons on secured networks
+- [ ] Join WPA2 network via on-screen keyboard
+- [ ] Wrong password shows a friendly retry path
+- [ ] Saved network reconnects after reboot
+- [ ] Forget removes a saved network
+- [ ] Connecting to Wi-Fi does not crash the shell
 
-## Keyboard & mouse
-- [ ] Arrow keys + Enter/Escape navigate the entire shell on a physical
-      keyboard, including in and out of dialogs
-- [ ] Typing on a physical keyboard enters text directly into every field
-      (Wi-Fi password, manual IP, search, rename) with no on-screen keyboard
-      interaction needed
-- [ ] On-screen keyboard appears for every text entry and is fully
-      drivable by controller alone (D-pad + A to type, DONE to submit)
-- [ ] Password fields mask by default; reveal toggle shows/hides them
-- [ ] Clipboard paste option is visible only when developer mode is on
-- [ ] Mouse: hovering a card/button gives it visible focus; click activates;
-      right-click on a paired PC card opens its options; dragging a slider
-      (e.g. safe area, bitrate) works
-- [ ] Mouse cursor appears the moment a mouse is plugged in, with no cursor
-      visible at all when none is attached
+## Bluetooth
 
-## Pairing & library
-- [ ] Sunshine host on same subnet appears via mDNS within ~5 s
-- [ ] Manual IP add works across subnets; bad IP → friendly error with retry
-- [ ] PIN pairing completes; host survives reboot (persisted)
-- [ ] Library shows apps with box art; filter (Y) narrows the grid
-- [ ] Offline host → clear offline state; Wake-on-LAN offer on click
+- [ ] Bluetooth screen uses side-by-side known and nearby layout
+- [ ] Xbox, DualShock 4, DualSense, and 8BitDo controllers pair from the UI
+- [ ] Setup wizard auto-discovers and pairs a controller in pairing mode
+- [ ] Paired controller reconnects after reboot
+- [ ] Battery status appears where supported
+- [ ] Forget and re-pair works
 
-## Streaming (the big one)
-- [ ] 1080p60 H.264 and HEVC streams start in < 5 s on LAN
-- [ ] Hardware decode confirmed (Pi 4: HEVC via V4L2; check no software-decode warning in devmode logs)
-- [ ] Audio through selected HDMI output, in sync
-- [ ] Controller input works in-game, multiple controllers if enabled
-- [ ] Start+Select+L1+R1 exits stream → back at shell, UI nav restored
-- [ ] Launch → quit → relaunch 5× without restart (no DRM/session leak)
-- [ ] "App already running" flow: stop-and-play works
-- [ ] Pulling Ethernet mid-stream → session ends → friendly error, not a hang
-- [ ] Per-host profile saves and auto-loads (verify by differing resolutions on two hosts)
+## Navigation And Input
 
-## Display, CEC, recovery
-- [ ] Mode list matches TV EDID; staging + "Apply now" restarts into the new mode
-- [ ] Bad-mode simulation: hand-write an invalid eglfs-kms.json → crash loop → Recovery screen appears → "Reset display settings" fixes it
-- [ ] CEC: TV remote navigates the shell; toggle off stops it; "Wake TV" turns a standby TV on and grabs the input
-- [ ] kill -9 the shell 4× fast → recovery screen (not a black screen, never a terminal)
+- [ ] A selects, B backs out, X opens context actions
+- [ ] D-pad and analog sticks move focus predictably
+- [ ] Setup wizard Back and Continue can both navigate up to the action button
+- [ ] Physical keyboard types directly into every text field
+- [ ] On-screen keyboard works with controller only
+- [ ] Mouse hover focuses and click activates
+- [ ] Text never overlaps buttons at 1080p or 4K
+- [ ] GUI scale is consistent on same-size 1080p and 4K displays
 
-## Background & animation
-- [ ] Stars twinkle independently (not all in sync) and are visible against
-      the dark background without being distracting
-- [ ] Shooting stars appear periodically at varying angles/positions
-- [ ] The moon animates smoothly to a new position/size on every screen
-      change (Home → Pair → Settings → back), never snapping instantly
-- [ ] Animations stay smooth (no visible stutter) while a settings list or
-      library grid is also scrolling
+## Pairing And Library
 
-## System
-- [ ] Update (OS packages) runs, status reaches success, log in devmode
-- [ ] Developer mode on → SSH reachable; off → connection refused
-- [ ] Export to USB → file on stick; import on a *fresh* flash restores hosts + settings
-- [ ] Factory reset → wizard on next boot, no paired hosts/networks/BT remain
-- [ ] Nothing ever shows a terminal, a Qt error dialog, or a raw log excerpt outside devmode
+- [ ] Sunshine host appears via mDNS within about 5 s
+- [ ] Manual IP add works across subnets
+- [ ] Bad IP shows a friendly error
+- [ ] PIN pairing completes
+- [ ] Paired host persists after reboot
+- [ ] Library shows apps and filtering works
+- [ ] Offline host state is clear
 
-## Moon Shell self-update (GitHub Releases path)
-- [ ] `.github/workflows/release.yml` completes end-to-end from a manual
-      "Run workflow" click and publishes a Release with `version`,
-      `moon-shell-arm64`, `moon-shell-arm64.sha256`
-- [ ] A push to `main` touching `moon-shell/**` auto-triggers the same workflow
-- [ ] A console on an older version shows the update as available and
-      installs it; `/etc/moonos/version` matches the release afterward
-- [ ] A deliberately corrupted `moon-shell-arm64.sha256` causes the console
-      to refuse the update (no partial/broken binary installed)
-- [ ] After a shell update, a restart brings up the new version cleanly (no
-      crash loop from the swap)
+## Streaming
+
+- [ ] 1080p60 H.264 stream starts in under 5 s
+- [ ] 1080p60 HEVC stream starts in under 5 s
+- [ ] Hardware decode is used
+- [ ] Audio routes to selected HDMI output
+- [ ] Controller input works in-game
+- [ ] Start+Select+L1+R1 exits stream back to shell
+- [ ] Launch and quit a stream 5 times without restart
+- [ ] Pulling network mid-stream returns to shell with a friendly error
+
+## Display, Audio, And CEC
+
+- [ ] Mode list matches EDID
+- [ ] Changing resolution applies and persists
+- [ ] Bad mode simulation triggers Recovery and Reset display settings fixes it
+- [ ] Sound output setting persists after reboot
+- [ ] CEC remote navigates when enabled and stops when disabled
+
+## Update
+
+- [ ] Settings -> System -> Update Moon OS starts `moon-update.service`
+- [ ] Update status reaches `success`
+- [ ] `/var/lib/moonos/update.log` records apt, git, installer, cleanup, and service audit steps
+- [ ] On a branch checkout, updater pulls fast-forward changes
+- [ ] Updater re-runs `install.sh --from-update`
+- [ ] Running updater five times leaves one set of services and a clean status
+- [ ] Legacy `moon-shell-update.service` and `update-release.sh` are removed if present
+- [ ] Old `/etc/moonos/eglfs-kms.json` migrates to `/var/lib/moonos/eglfs-kms.json`
+
+## Uninstall
+
+- [ ] Settings -> System -> Uninstall Moon OS shows confirmation
+- [ ] Cancel leaves services untouched
+- [ ] Confirm starts `moon-uninstall.service`
+- [ ] Manual `./uninstall.sh` requires exact text confirmation
+- [ ] Uninstall stops and disables Moon OS units
+- [ ] `getty@tty1.service` is enabled after uninstall
+- [ ] Installed files under `/usr/lib/moonos`, `/etc/moonos`, and `/usr/bin/moon-shell` are removed
+- [ ] Reboot after uninstall shows normal Raspberry Pi OS login
+
+## Config Backup And Reset
+
+- [ ] Export to USB writes `moonos-config.tar.gz`
+- [ ] Import restores hosts and settings on another installed Pi
+- [ ] Factory reset removes hosts, networks, Bluetooth state, and settings
 
 ## Soak
-- [ ] 4-hour stream session: no thermal throttling artifacts (Pi 5 with fan), no memory creep (`smem` over SSH before/after)
-- [ ] 48 h idle at Home: clock correct, no burn-in from static elements (glow subtle), still responsive
+
+- [ ] 4-hour stream session shows no thermal throttling artifacts
+- [ ] 48-hour idle at Home remains responsive

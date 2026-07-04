@@ -6,10 +6,11 @@ whole file before making changes.
 
 ## What Moon OS is
 
-**Moon OS** is a dedicated game-streaming console operating system for
-Raspberry Pi 4 and 5. It flashes as a single `.img` and boots straight into
-**Moon Shell** — a fullscreen, controller-first, Big-Picture-style UI — with
-no desktop environment, no terminal, and no visible Linux underneath.
+**Moon OS** is a dedicated game-streaming console environment for Raspberry Pi
+4 and 5. It installs onto Raspberry Pi OS Lite 64-bit with `./install.sh` and
+boots straight into **Moon Shell** — a fullscreen, controller-first,
+Big-Picture-style UI — with no desktop environment, no terminal, and no visible
+Linux underneath during normal use.
 
 - **Moon Shell** (`moon-shell/`) is a fork of
   [moonlight-qt](https://github.com/moonlight-stream/moonlight-qt): the actual
@@ -22,12 +23,12 @@ no desktop environment, no terminal, and no visible Linux underneath.
   repo, pinned to a specific public commit. It is patched at *build time* by
   `scripts/prepare-fork.sh` — see "The moonlight-qt submodule" below before
   touching anything in `third_party/`.
-- **`os-image/`** builds the flashable image with pi-gen (Raspberry Pi OS Lite,
-  arm64/bookworm base).
-- **`.github/workflows/release.yml`** builds just the `moon-shell` binary in
-  the cloud (arm64 emulation) and publishes it as a GitHub Release so flashed
-  consoles can self-update from System settings.
-- Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Build/flash
+- **`install/overlay`** contains the runtime overlay copied by `install.sh`.
+- **`legacy-image-build/`** contains the retired pi-gen image builder for
+  historical reference only. Do not treat it as the supported path.
+- **`.github/workflows/smoke.yml`** dry-runs install, update, and uninstall
+  control flow.
+- Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Install
   instructions: [README.md](README.md). Fixing a broken build/boot:
   [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
@@ -55,32 +56,21 @@ Rules:
   `git submodule status third_party/moonlight-qt` shows a commit that exists
   on `https://github.com/moonlight-stream/moonlight-qt` (no leading `+`/stray
   local commit).
-- CI does not trust the submodule pointer at all: `release.yml` checks out
-  with `submodules: false` and lets `prepare-fork.sh` clone moonlight-qt fresh
-  at the pinned `MOONLIGHT_REF` commit. Keep it that way.
+- CI does not trust the submodule pointer at all: smoke workflows check out
+  with `submodules: false`; `prepare-fork.sh` is responsible for syncing the
+  pinned upstream commit.
 
-## `.github/workflows/release.yml` — CI gotchas already hit once
+## Install / update model
 
-If you touch this workflow, don't reintroduce these — they produced
-confusing, low-information failures the first time:
-
-- **Keep the release job on a native GitHub-hosted arm64 runner.** The old
-  `uraimo/run-on-arch-action` path used QEMU user-mode emulation and failed
-  before source compilation when Debian's `python3` post-install script
-  exited under emulation. The current workflow uses `ubuntu-24.04-arm` plus a
-  normal `debian:bookworm` Docker container so the binary still targets the
-  Pi's Debian bookworm runtime without QEMU/binfmt setup.
-- Qt/FFmpeg builds are tight on the default ~14GB runner disk and can OOM
-  under wide `-j` parallelism; the workflow frees disk space first and caps
-  `make -j2`. If you see the job die with no compiler error at all, suspect
-  this before anything else.
-- **`qmake6` can fail with `failed to parse default search paths from
-  compiler output`** inside the release container even though the identical
-  call succeeds in the pi-gen chroot `os-image/build.sh` uses — a locale/
-  colorized-gcc-output issue in qmake's compiler-probing, not a source
-  problem. The workflow exports `LC_ALL=C LANG=C TERM=dumb GCC_COLORS=`
-  before `qmake6` and prints a compiler diagnostic sample first. If it
-  recurs, read that diagnostic output before changing anything else.
+- The supported install path is Raspberry Pi OS Lite 64-bit plus `./install.sh`
+  from a git checkout.
+- The supported update path is Settings -> System -> Update Moon OS, which
+  runs the git checkout updater and then re-runs `install.sh --from-update`.
+- The supported removal path is Settings -> System -> Uninstall Moon OS or
+  `./uninstall.sh`.
+- Do not add docs, scripts, or UI that point users at custom image downloads,
+  Raspberry Pi Imager custom images, Etcher, `dd`, or GitHub Release binary
+  updates except inside `legacy-image-build/`.
 
 ## Commit messages
 
@@ -92,8 +82,8 @@ joke message — don't add to that pile.
 - **Say why, not just what**, when it isn't obvious from the diff. "Cap CI
   build parallelism to 2 (avoid OOM under QEMU emulation)" beats "change
   make -j".
-- **Scope prefix when it helps**: `moon-shell:`, `os-image:`, `CI:`, `docs:`
-  are fine, e.g. `os-image: pin runtime libs so ldd never breaks on the Pi`.
+- **Scope prefix when it helps**: `moon-shell:`, `install:`, `CI:`, `docs:`
+  are fine, e.g. `install: clean legacy updater units during upgrade`.
 - **Reference the failure mode you fixed**, if any — future readers (and
   future agents) debugging a recurrence will grep for it.
 - Body (optional, blank line after summary) for anything a reviewer would
@@ -107,12 +97,10 @@ joke message — don't add to that pile.
 
 - [ ] If `third_party/moonlight-qt` changed: ran `prepare-fork.sh`, confirmed
       the submodule points at a public upstream commit.
-- [ ] If you touched `moon-shell/`: does it still need to compile inside the
-      pi-gen chroot (Qt 6, no extra deps beyond what's declared in
-      `moon-shell/moon.pri` and `os-image/stage-moonos/00-packages`)?
-- [ ] If you added a new dlopen'd Qt plugin/library dependency: does
-      `os-image/stage-moonos/02-build-shell/00-run.sh`'s library-pinning scan
-      still cover it, or does it need adding to `00-packages` explicitly?
+- [ ] If you touched `moon-shell/`: does it still compile on Raspberry Pi OS
+      Lite bookworm arm64 with dependencies declared in `install.sh`?
+- [ ] If you added a new runtime dependency: did you add it to `install.sh`
+      and verify `scripts/smoke-install-roundtrip.sh` still passes?
   (This project shipped a build once where a runtime `.so` was silently
   stripped by cleanup and the binary died with `error while loading shared
   libraries` on first boot — don't reintroduce that class of bug.)

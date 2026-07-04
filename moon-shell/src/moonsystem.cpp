@@ -95,6 +95,11 @@ void MoonSystem::startUpdate()
     timer->start();
 }
 
+void MoonSystem::startUninstall()
+{
+    startUnit(QStringLiteral("moon-uninstall.service"));
+}
+
 void MoonSystem::refreshUpdateStatus()
 {
     const QString s = readStatusFile(QStringLiteral("update-status"));

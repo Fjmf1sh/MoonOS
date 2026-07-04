@@ -29,6 +29,7 @@ public:
 
     Q_INVOKABLE void startUpdate();
     Q_INVOKABLE void refreshUpdateStatus();
+    Q_INVOKABLE void startUninstall();
 
     Q_INVOKABLE void setDeveloperMode(bool enabled);
 

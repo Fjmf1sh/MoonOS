@@ -1,0 +1,8 @@
+[Unit]
+Description=Uninstall Moon OS
+After=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/moonos/uninstall.sh --yes
+TimeoutStartSec=300

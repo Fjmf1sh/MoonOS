@@ -4,29 +4,29 @@
 #   deploy/update/moon-shell-arm64
 #   deploy/update/moon-shell-arm64.sha256
 #
-# Run it after os-image/build.sh (it pulls the aarch64 moon-shell binary that
+# Run it after legacy-image-build/build.sh (it pulls the aarch64 moon-shell binary that
 # was compiled inside the pi-gen chroot). Then attach the three files to a
-# GitHub "latest" release on the repo you set as MOONOS_UPDATE_REPO.
+# GitHub release. This was used by the retired release-binary updater.
 #
 # Usage:
-#   scripts/package-update.sh [path/to/moon-shell]
+#   legacy-image-build/package-update.sh [path/to/moon-shell]
 # If no path is given, it searches the pi-gen work tree from the last build.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$REPO_ROOT/deploy/update"
-VERSION_SRC="$REPO_ROOT/os-image/overlay/etc/moonos/version"
+VERSION_SRC="$REPO_ROOT/install/overlay/etc/moonos/version"
 
 BIN="${1:-}"
 if [ -z "$BIN" ]; then
     # Newest moon-shell under the pi-gen rootfs from the last build.
-    BIN="$(find "$REPO_ROOT/os-image/pi-gen/work" -path '*/rootfs/usr/bin/moon-shell' \
+    BIN="$(find "$REPO_ROOT/legacy-image-build/pi-gen/work" -path '*/rootfs/usr/bin/moon-shell' \
             -type f 2>/dev/null | xargs -r ls -t 2>/dev/null | head -1 || true)"
 fi
 
 if [ -z "$BIN" ] || [ ! -f "$BIN" ]; then
     echo "ERROR: could not find a built moon-shell binary." >&2
-    echo "Run os-image/build.sh first, or pass the path explicitly." >&2
+    echo "Run legacy-image-build/build.sh first, or pass the path explicitly." >&2
     exit 1
 fi
 
@@ -62,5 +62,4 @@ echo "Publish them, e.g. with the GitHub CLI:"
 echo "  gh release create v$VERSION $OUT/version $OUT/moon-shell-arm64 $OUT/moon-shell-arm64.sha256 \\"
 echo "     --repo <owner>/<repo> --title \"Moon OS $VERSION\" --latest"
 echo ""
-echo "Then set MOONOS_UPDATE_REPO=\"<owner>/<repo>\" in os-image/overlay/etc/moonos/update.conf"
-echo "and rebuild once so shipped consoles know where to look."
+echo "This is a legacy artifact path. The supported updater now pulls git and reruns install.sh."

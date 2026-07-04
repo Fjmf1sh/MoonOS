@@ -19,6 +19,7 @@ rm -rf /var/lib/bluetooth/*
 
 # Display/audio overrides
 rm -f /etc/moonos/eglfs-kms.json
+rm -f "$STATE_DIR/eglfs-kms.json"
 
 # SSH back off; host keys regenerate on next devmode enable
 systemctl disable --now ssh 2>/dev/null || true

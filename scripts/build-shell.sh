@@ -1,29 +1,23 @@
 #!/usr/bin/env bash
 # Builds the moon-shell binary on Debian/Raspberry Pi OS (bookworm), or in a
-# Debian bookworm Docker container with --docker. The Docker path is the
-# shell-only equivalent of os-image/build.sh --docker: prepare the Moonlight
-# fork, compile Moon Shell for aarch64/bookworm, and package only the updater
-# assets instead of building the full flashable image.
+# Debian bookworm Docker container with --docker. install.sh uses the native
+# path on a Raspberry Pi OS Lite install, then installs the resulting binary.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UPSTREAM="$REPO_ROOT/third_party/moonlight-qt"
 JOBS="${JOBS:-$(nproc)}"
 USE_DOCKER=0
-PACKAGE_UPDATE=0
-VERSION="${VERSION:-}"
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --docker) USE_DOCKER=1 ;;
-        --package-update) PACKAGE_UPDATE=1 ;;
-        --version) VERSION="$2"; shift ;;
         -h|--help)
             sed -n '1,18p' "$0" | sed 's/^# \{0,1\}//'
             echo ""
             echo "Usage:"
             echo "  scripts/build-shell.sh"
-            echo "  scripts/build-shell.sh --docker --package-update --version 2026.07.04"
+            echo "  scripts/build-shell.sh --docker"
             exit 0
             ;;
         *) echo "unknown option: $1" >&2; exit 1 ;;
@@ -58,13 +52,6 @@ if [ "$USE_DOCKER" = "1" ]; then
             SKIP_DEPS=1 bash /work/scripts/build-shell.sh
         '
 
-    if [ "$PACKAGE_UPDATE" = "1" ]; then
-        bash "$REPO_ROOT/scripts/package-update.sh" "$UPSTREAM/build/app/moon-shell"
-        if [ -n "$VERSION" ]; then
-            echo "$VERSION" > "$REPO_ROOT/deploy/update/version"
-            ( cd "$REPO_ROOT/deploy/update" && sha256sum moon-shell-arm64 > moon-shell-arm64.sha256 )
-        fi
-    fi
     exit 0
 fi
 

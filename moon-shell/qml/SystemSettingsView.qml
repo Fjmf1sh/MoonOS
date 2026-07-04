@@ -9,8 +9,8 @@ SettingsScaffold {
     subtitle: qsTr("Moon OS %1").arg(MoonSystem.osVersion)
 
     ActionRow {
-        label: qsTr("Check for updates")
-        sublabel: qsTr("Downloads and installs Moon OS updates")
+        label: qsTr("Update Moon OS")
+        sublabel: qsTr("Pulls the installed git checkout and reruns install.sh")
         busy: MoonSystem.updateStatus === "running"
         value: MoonSystem.updateStatus === "success" ? qsTr("Up to date")
              : MoonSystem.updateStatus.indexOf("failed") === 0 ? qsTr("Last update failed")
@@ -19,6 +19,16 @@ SettingsScaffold {
             qsTr("The console stays usable while downloading. Some updates finish with a restart."),
             qsTr("Update now"),
             function() { MoonSystem.startUpdate() })
+    }
+
+    ActionRow {
+        label: qsTr("Uninstall Moon OS")
+        sublabel: qsTr("Stops Moon OS and restores the normal Raspberry Pi OS login")
+        destructive: true
+        onActivated: window.confirm(qsTr("Uninstall Moon OS?"),
+            qsTr("Moon OS will stop, remove its services and files, and restore the normal tty1 login. Your cloned repo is left alone."),
+            qsTr("Uninstall"),
+            function() { MoonSystem.startUninstall() }, true)
     }
 
     ActionRow {

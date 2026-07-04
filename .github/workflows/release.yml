@@ -41,7 +41,11 @@ concurrency:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    # Build on GitHub's native arm64 runner, then run the compiler inside a
+    # Debian bookworm container. This preserves the Pi/bookworm runtime ABI
+    # without QEMU user-mode emulation, which has failed during apt package
+    # configuration before the source build even starts.
+    runs-on: ubuntu-24.04-arm
     steps:
       # Deliberately DON'T fetch submodules here: prepare-fork.sh clones
       # moonlight-qt fresh at its pinned public commit, so CI is immune to a
@@ -70,15 +74,9 @@ jobs:
           echo "tag=v$V" >> "$GITHUB_OUTPUT"
           echo "Publishing version: $V"
 
-      # NOTE: do NOT also run docker/setup-qemu-action here. run-on-arch-action
-      # registers its own QEMU binfmt handlers internally; registering them
-      # twice makes the very first step of run-on-arch.sh fail immediately
-      # with no build output — exactly the bare "process ... failed with exit
-      # code" seen with no apt/compile log above it.
-
-      # Emulated arm64 compilation + Qt/FFmpeg dev headers can eat a lot of
-      # disk on the default ~14GB free on a GitHub-hosted runner. Reclaim
-      # space from toolchains this job never uses before the build.
+      # Qt/FFmpeg dev headers can eat a lot of disk on the default ~14GB free
+      # on a GitHub-hosted runner. Reclaim space from toolchains this job
+      # never uses before the build.
       - name: Free up disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
@@ -86,39 +84,33 @@ jobs:
           df -h /
 
       - name: Compile moon-shell (aarch64)
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          # Use the action's own tested arch/distro presets instead of a
-          # hand-picked base_image tag. "arm64v8/debian:bookworm" isn't a
-          # resolvable manifest for this action's build/pull path ("no match
-          # for platform in manifest") — arch+distro is the supported,
-          # working combination for Debian 12 on aarch64.
-          arch: aarch64
-          distro: bookworm
-          githubToken: ${{ github.token }}
-          dockerRunArgs: --volume "${{ github.workspace }}:/work"
-          install: |
+        run: |
+          set -ex
+          docker run --rm \
+            --volume "${GITHUB_WORKSPACE}:/work" \
+            --workdir /work \
+            debian:bookworm \
+            bash -euxo pipefail -c '
             set -ex
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
             apt-get install -y --no-install-recommends \
-              build-essential pkg-config \
+              build-essential file pkg-config \
               qt6-base-dev qt6-declarative-dev qt6-base-dev-tools libqt6svg6-dev \
               libgl1-mesa-dev libegl1-mesa-dev \
               libopus-dev libsdl2-dev libsdl2-ttf-dev libssl-dev \
               libavcodec-dev libavformat-dev libswscale-dev \
               libva-dev libvdpau-dev libdrm-dev libxkbcommon-dev wayland-protocols \
               libcec-dev
-          run: |
-            set -ex
+
             # qmake probes the compiler (g++ -E -dM ...) to learn its default
             # include/library search paths, then parses the plain-English
             # diagnostic output. A non-C locale can make gcc emit localized
             # or reformatted text there, which breaks that parser with
             # "failed to parse default search paths from compiler output" /
-            # "QMAKE_CXX.COMPILER_MACROS is not defined" — seen once already
-            # in this emulated container even though the same qmake call
-            # succeeds fine inside the pi-gen chroot used by os-image/build.sh.
+            # "QMAKE_CXX.COMPILER_MACROS is not defined" — seen once before
+            # in CI even though the same qmake call succeeds fine inside the
+            # pi-gen chroot used by os-image/build.sh.
             export LC_ALL=C LANG=C TERM=dumb GCC_COLORS=
             echo "--- compiler probe diagnostics ---"
             g++ --version
@@ -129,14 +121,15 @@ jobs:
             cd /work/third_party/moonlight-qt
             mkdir -p build && cd build
             qmake6 ../moonlight-qt.pro
-            # Capped (not $(nproc)) — under QEMU user-mode emulation, a wide
-            # parallel Qt/C++ build can exceed the runner's memory and get
-            # silently OOM-killed, which surfaces as this same bare
-            # "run-on-arch.sh failed" error with no compiler diagnostic.
+            # Capped (not $(nproc)) because Qt/C++ builds can exceed the
+            # runner's memory and get silently OOM-killed with no compiler
+            # diagnostic.
             make -j2
             mkdir -p /work/deploy/update
             install -m 755 app/moon-shell /work/deploy/update/moon-shell-arm64
             echo "Built:"; file app/moon-shell || true
+            chown -R "$(stat -c %u /work):$(stat -c %g /work)" /work/deploy
+            '
 
       - name: Package release assets
         run: |

@@ -240,27 +240,26 @@ settings does two independent things (`update.sh`):
 
 Releases are produced entirely in the cloud by
 [`.github/workflows/release.yml`](../.github/workflows/release.yml): it
-compiles just the `moon-shell` binary (not the whole image) in an emulated
-arm64 Debian-bookworm container, then publishes/updates a GitHub Release with
-the three assets above. It runs on a push to `main` touching `moon-shell/**`
-or the pinned submodule commit, on a manual "Run workflow" click, or on a
-`v*` tag. A `scripts/release.sh` + `scripts/package-update.sh` pair does the
-same thing from a local Linux/WSL/git-bash shell with the GitHub CLI, for
-anyone who'd rather not use the cloud path.
+compiles just the `moon-shell` binary (not the whole image) on GitHub's
+native arm64 hosted runner, inside a Debian-bookworm Docker container, then
+publishes/updates a GitHub Release with the three assets above. Native arm64
+keeps the build out of QEMU user-mode emulation while the container keeps the
+binary aligned with the Pi's Debian bookworm runtime. It runs on a push to
+`main` touching `moon-shell/**` or the pinned submodule commit, on a manual
+"Run workflow" click, or on a `v*` tag. A `scripts/release.sh` +
+`scripts/package-update.sh` pair does the same thing from a local
+Linux/WSL/git-bash shell with the GitHub CLI, for anyone who'd rather not use
+the cloud path.
 
 CI-specific gotchas already hit and fixed once, worth knowing before touching
 `release.yml` again:
-- **Don't add `docker/setup-qemu-action` alongside `uraimo/run-on-arch-action`.**
-  The latter registers its own QEMU binfmt handlers; a second registration
-  collides and makes the whole job fail immediately with no build output at
-  all (a bare "process ... failed with exit code").
-- **Use `run-on-arch-action`'s `arch`/`distro` inputs, not a hand-picked
-  `base_image` tag.** A guessed image reference like `arm64v8/debian:bookworm`
-  can fail with `no match for platform in manifest` even though it looks
-  like a normal Docker Hub tag; `arch: aarch64` / `distro: bookworm` is the
-  action's own tested combination.
+- **Keep the release job on a native arm64 runner.** The old
+  `uraimo/run-on-arch-action` path used QEMU user-mode emulation and failed
+  before compilation when Debian's `python3` post-install script exited under
+  emulation. Use GitHub's current hosted arm64 runner label and a normal
+  `debian:bookworm` Docker container instead of adding QEMU/binfmt setup.
 - **`qmake6` can fail to parse the compiler's search-path output inside the
-  emulated container** (`failed to parse default search paths from compiler
+  release container** (`failed to parse default search paths from compiler
   output`), even though the identical call succeeds in the pi-gen chroot
   `os-image/build.sh` uses — a locale/output-formatting issue in qmake's
   compiler probing, not a source problem. Worked around by forcing

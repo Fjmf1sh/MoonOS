@@ -53,20 +53,21 @@ comment explaining why).
 
 ## GitHub Actions release workflow
 
-**Job fails immediately with a bare `process '.../run-on-arch.sh' failed
-with exit code N` and no install/compile output above it**
-Almost always a QEMU binfmt double-registration: `run-on-arch-action`
-registers its own QEMU handlers internally, so adding
-`docker/setup-qemu-action` as a separate step before it collides and kills
-the job before anything runs. `release.yml` intentionally does **not**
-include a separate QEMU setup step — don't add one back.
+**The release job is queued for a long time or says no matching runner is
+available**
+`release.yml` uses GitHub's native arm64 hosted runner label
+`ubuntu-24.04-arm`, then compiles inside a `debian:bookworm` Docker
+container. This avoids QEMU user-mode emulation while preserving the Pi's
+Debian bookworm runtime ABI. If GitHub changes or temporarily disables that
+runner label, check GitHub's hosted-runner reference and update the label
+rather than reintroducing `uraimo/run-on-arch-action`.
 
-**`no match for platform in manifest: not found` while pulling the base
-image**
-A hand-picked `base_image:` tag isn't resolvable through
-`run-on-arch-action`'s build/pull path, even if the tag exists on Docker Hub.
-Use the action's own `arch: aarch64` / `distro: bookworm` inputs instead of
-`base_image:` — that combination is the one the action actually tests.
+**Apt fails while installing packages in the Debian build container**
+This should now be a real Debian/package issue, not QEMU emulation. The old
+workflow used `uraimo/run-on-arch-action`, and failed once during
+`python3`'s post-install script under emulation before compilation even
+started. The current native-arm runner path should not need
+`docker/setup-qemu-action`, binfmt registration, or a `base_image:` workaround.
 
 **`qmake6` fails with `toolchain.prf:76: Variable QMAKE_CXX.COMPILER_MACROS
 is not defined` / `Project ERROR: failed to parse default search paths from
@@ -79,17 +80,16 @@ prints `g++ --version` / `g++ -dumpmachine` / a macro-probe sample first, so
 if this recurs the log shows exactly what qmake's probe actually saw instead
 of just the bare parse failure. Notably, the identical `qmake6
 ../moonlight-qt.pro` call succeeds fine inside the pi-gen chroot that
-`os-image/build.sh` uses — so if this keeps failing only in the
-`run-on-arch-action` container, the difference is something about that
-specific container/emulation setup, not the moonlight-qt source.
+`os-image/build.sh` uses — so if this keeps failing only in the release
+container, the difference is something about that container setup, not the
+moonlight-qt source.
 
 **Job runs out of disk space or gets silently killed mid-`make`**
 GitHub-hosted runners have ~14GB free by default; Qt/FFmpeg dev headers plus
-an emulated build can exceed that, and a wide `make -j$(nproc)` under QEMU
-user-mode emulation can get OOM-killed with no compiler error at all (same
-generic failure as above). `release.yml` frees disk space first (removes
-unused preinstalled toolchains) and caps the build at `make -j2` — if it
-still runs out, lower this further or split the job.
+the container image can exceed that, and a wide `make -j$(nproc)` can get
+OOM-killed with no compiler error at all. `release.yml` frees disk space
+first (removes unused preinstalled toolchains) and caps the build at
+`make -j2` — if it still runs out, lower this further or split the job.
 
 ## Boot
 

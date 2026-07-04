@@ -32,10 +32,11 @@ Environment=QT_QPA_EGLFS_ALWAYS_SET_MODE=1
 Environment=SDL_AUDIODRIVER=alsa
 Environment=SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/moonos/gamecontrollerdb.txt
 EnvironmentFile=-/etc/moonos/moon.env
-# Release the console cleanly before EGLFS takes DRM master. We do NOT use
-# --retain-splash: keeping the splash framebuffer can block EGLFS from
-# claiming the CRTC on some HDMI sinks (seen as a hang at the splash).
-ExecStartPre=-/usr/bin/plymouth quit
+# Deactivate Plymouth (releasing DRM master) but KEEP its last frame on screen
+# with --retain-splash, so the boot splash stays up as a loading screen until
+# Moon Shell paints its first frame over it. QT_QPA_EGLFS_ALWAYS_SET_MODE=1
+# above forces the modeset so EGLFS still claims the CRTC cleanly.
+ExecStartPre=-/usr/bin/plymouth quit --retain-splash
 ExecStart=/usr/lib/moonos/start-shell.sh
 Restart=always
 RestartSec=2

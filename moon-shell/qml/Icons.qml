@@ -7,6 +7,15 @@ import QtQuick 2.15
 QtObject {
     id: root
 
+    // The FontLoader MUST be held in a property. QtObject has no default
+    // property, so declaring a bare <FontLoader> child is a fatal QML error
+    // ("Cannot assign to non-existent default property") — and because this
+    // singleton backs every MIcon, that error tears down the whole shell right
+    // after launch (the "crashes on boot" symptom).
+    property FontLoader symbolFont: FontLoader {
+        source: "qrc:/moon/assets/fonts/MaterialSymbolsRounded.ttf"
+    }
+
     readonly property string family: symbolFont.status === FontLoader.Ready
                                      ? symbolFont.name : "Material Symbols Rounded"
     readonly property string fallbackGlyph: String.fromCharCode(0xe88e) // info
@@ -49,10 +58,5 @@ QtObject {
             console.warn("Missing Material Symbols Rounded icon codepoint:", name)
         }
         return fallbackGlyph
-    }
-
-    FontLoader {
-        id: symbolFont
-        source: "qrc:/moon/assets/fonts/MaterialSymbolsRounded.ttf"
     }
 }

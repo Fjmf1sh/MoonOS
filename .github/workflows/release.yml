@@ -55,9 +55,6 @@ jobs:
         with:
           submodules: false
 
-      - name: Prepare the Moonlight fork (clone upstream + copy Moon Shell + patch)
-        run: bash scripts/prepare-fork.sh
-
       - name: Work out the version
         id: ver
         run: |
@@ -86,75 +83,10 @@ jobs:
       - name: Compile moon-shell (aarch64)
         run: |
           set -ex
-          docker run --rm \
-            --volume "${GITHUB_WORKSPACE}:/work" \
-            --workdir /work \
-            debian:bookworm \
-            bash -euxo pipefail -c '
-            set -ex
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            apt-get install -y --no-install-recommends \
-              build-essential file pkg-config \
-              qt6-base-dev qt6-declarative-dev qt6-base-dev-tools libqt6svg6-dev \
-              libgl1-mesa-dev libegl1-mesa-dev \
-              libopus-dev libsdl2-dev libsdl2-ttf-dev libssl-dev \
-              libavcodec-dev libavformat-dev libswscale-dev \
-              libva-dev libvdpau-dev libdrm-dev libxkbcommon-dev wayland-protocols \
-              libcec-dev
-
-            # qmake probes the compiler (g++ -E -dM ...) to learn its default
-            # include/library search paths, then parses the plain-English
-            # diagnostic output. A non-C locale can make gcc emit localized
-            # or reformatted text there, which breaks that parser with
-            # "failed to parse default search paths from compiler output" /
-            # "QMAKE_CXX.COMPILER_MACROS is not defined" — seen once before
-            # in CI even though the same qmake call succeeds fine inside the
-            # pi-gen chroot used by os-image/build.sh.
-            export LC_ALL=C LANG=C TERM=dumb GCC_COLORS=
-            echo "--- compiler probe diagnostics ---"
-            g++ --version
-            g++ -dumpmachine
-            # Avoid piping directly into head here: with pipefail enabled,
-            # head can close early and turn this diagnostic probe into a
-            # build-stopping SIGPIPE from g++.
-            g++ -E -dM -x c++ /dev/null > /tmp/moonos-compiler-macros.txt
-            head -5 /tmp/moonos-compiler-macros.txt
-            echo "-----------------------------------"
-
-            cd /work/third_party/moonlight-qt
-            mkdir -p build && cd build
-            qmake6 ../moonlight-qt.pro
-            echo "--- generated makefiles ---"
-            find . -maxdepth 2 -name "Makefile*" -print | sort
-            echo "---------------------------"
-            # Capped (not $(nproc)) because Qt/C++ builds can exceed the
-            # runner's memory and get silently OOM-killed with no compiler
-            # diagnostic.
-            if [ -f Makefile ] && grep -q "^release:" Makefile; then
-              echo "Building release target from top-level Makefile"
-              make -j2 release
-            elif [ -f Makefile ]; then
-              echo "Building default target from top-level Makefile"
-              make -j2
-            elif [ -f Makefile.Release ]; then
-              echo "Building from Makefile.Release"
-              make -f Makefile.Release -j2
-            else
-              echo "ERROR: qmake did not generate Makefile or Makefile.Release" >&2
-              exit 1
-            fi
-            MOON_SHELL_BIN="$(find app -type f -name moon-shell -perm /111 | sort | head -1)"
-            if [ -z "$MOON_SHELL_BIN" ]; then
-              echo "ERROR: moon-shell binary was not produced" >&2
-              find app -maxdepth 4 -type f -name "moon-shell*" -print >&2 || true
-              exit 1
-            fi
-            mkdir -p /work/deploy/update
-            install -m 755 "$MOON_SHELL_BIN" /work/deploy/update/moon-shell-arm64
-            echo "Built:"; file "$MOON_SHELL_BIN" || true
-            chown -R "$(stat -c %u /work):$(stat -c %g /work)" /work/deploy
-            '
+          JOBS=2 bash scripts/build-shell.sh \
+            --docker \
+            --package-update \
+            --version "${{ steps.ver.outputs.version }}"
 
       - name: Package release assets
         run: |

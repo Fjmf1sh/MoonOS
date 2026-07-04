@@ -89,8 +89,8 @@ moonlight-qt source.
 moonlight-qt sets `CONFIG += debug_and_release`, and on some qmake/container
 combinations this produces `Makefile.Release` instead of a generic
 `Makefile`. `release.yml` prints the generated makefiles and builds either
-`make release` or `make -f Makefile.Release`, then finds the produced
-`moon-shell` binary under `app/`.
+the top-level `release` target, the top-level default target, or
+`Makefile.Release`, then finds the produced `moon-shell` binary under `app/`.
 
 **Job runs out of disk space or gets silently killed mid-`make`**
 GitHub-hosted runners have ~14GB free by default; Qt/FFmpeg dev headers plus

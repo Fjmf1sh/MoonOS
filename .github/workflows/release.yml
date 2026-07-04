@@ -131,9 +131,14 @@ jobs:
             # Capped (not $(nproc)) because Qt/C++ builds can exceed the
             # runner's memory and get silently OOM-killed with no compiler
             # diagnostic.
-            if [ -f Makefile ]; then
+            if [ -f Makefile ] && grep -q "^release:" Makefile; then
+              echo "Building release target from top-level Makefile"
               make -j2 release
+            elif [ -f Makefile ]; then
+              echo "Building default target from top-level Makefile"
+              make -j2
             elif [ -f Makefile.Release ]; then
+              echo "Building from Makefile.Release"
               make -f Makefile.Release -j2
             else
               echo "ERROR: qmake did not generate Makefile or Makefile.Release" >&2

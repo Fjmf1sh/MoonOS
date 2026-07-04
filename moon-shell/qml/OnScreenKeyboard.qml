@@ -71,7 +71,15 @@ FocusScope {
             var code = event.text.charCodeAt(0)
             if (code === 13 || code === 10) { accepted(); event.accepted = true; return }      // Enter
             if (code === 8 || code === 127) { backspace(); event.accepted = true; return }      // Backspace/Del
-            if (code >= 32) { keyPressed(event.text); event.accepted = true; return }           // printable
+            if (code >= 32) {
+                // On the EGLFS console some keymaps hand us the un-shifted letter
+                // even while Shift is held (Caps Lock is applied, Shift isn't).
+                // Honour the Shift modifier ourselves so Shift produces uppercase.
+                var ch = event.text
+                if ((event.modifiers & Qt.ShiftModifier) && ch >= "a" && ch <= "z")
+                    ch = ch.toUpperCase()
+                keyPressed(ch); event.accepted = true; return                                  // printable
+            }
         }
 
         // ---- controller / remote / arrow navigation ----

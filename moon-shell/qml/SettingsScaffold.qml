@@ -40,7 +40,12 @@ FocusScope {
         ListView {
             id: list
             width: parent.width
-            height: parent.height - y
+            // Leave room at the bottom for the HintBar so rows never tuck
+            // underneath it, and a little left/right breathing space so a
+            // focused row's border/glow isn't clipped by the list bounds.
+            height: parent.height - y - 72
+            leftMargin: 4
+            rightMargin: 4
             model: ObjectModel { id: rowModel }
             focus: true
             clip: true
@@ -60,7 +65,7 @@ FocusScope {
         anchors.horizontalCenter: parent.horizontalCenter
         hints: [
             { button: "A", label: qsTr("Change") },
-            { button: "◀ ▶", label: qsTr("Adjust") },
+            { button: "swap_horiz", label: qsTr("Adjust") },
             { button: "B", label: qsTr("Back") }
         ]
     }

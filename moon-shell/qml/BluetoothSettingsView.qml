@@ -65,7 +65,7 @@ FocusScope {
                 width: (parent.width - Theme.padSmall) / 2
                 height: 96
                 focus: true
-                icon: BluetoothService.powered ? "🔵" : "⚫"
+                icon: BluetoothService.powered ? "bluetooth" : "bluetooth_disabled"
                 label: qsTr("Bluetooth")
                 sublabel: !BluetoothService.available ? qsTr("No adapter")
                           : BluetoothService.powered ? qsTr("On — select to turn off")
@@ -79,7 +79,7 @@ FocusScope {
                 id: searchBtn
                 width: (parent.width - Theme.padSmall) / 2
                 height: 96
-                icon: "🔍"
+                icon: "search"
                 label: BluetoothService.discovering ? qsTr("Stop searching") : qsTr("Search for controllers")
                 sublabel: BluetoothService.discovering ? qsTr("Scanning…") : qsTr("Put your pad in pairing mode first")
                 KeyNavigation.left: btBtn
@@ -92,7 +92,11 @@ FocusScope {
         ListView {
             id: devList
             width: parent.width
-            height: parent.height - y
+            // Reserve space for the HintBar and pad the top/bottom so a focused
+            // row's scale-up and glow aren't clipped at the list edges.
+            height: parent.height - y - 72
+            topMargin: 8
+            bottomMargin: 8
             spacing: Theme.padSmall
             clip: true
             keyNavigationEnabled: true
@@ -109,10 +113,12 @@ FocusScope {
             }
 
             delegate: FocusButton {
-                width: devList.width
+                // Inset so the 1.045 focus scale + glow stay inside the list.
+                width: devList.width - Theme.pad * 4
+                x: Theme.pad * 2
                 height: 104
                 focus: ListView.isCurrentItem
-                icon: modelData.isController ? "🎮" : "📱"
+                icon: modelData.isController ? "sports_esports" : "smartphone"
                 label: modelData.name
                 sublabel: {
                     var bits = []

@@ -48,11 +48,20 @@ ok=1
         local_ver="$(tr -d '[:space:]' < "$VERSION_FILE" 2>/dev/null)"
         echo "installed: ${local_ver:-unknown}   available: ${remote_ver:-unreachable}"
 
+        # Releases are versioned YYYY.MM.DD.N. A local version that isn't in that
+        # numeric scheme (e.g. a "development" image) can't be ordered against a
+        # release, so normalise it to 0 — meaning "accept any published build".
+        # This is what stops the updater and GitHub from "arguing about the year".
+        case "$local_ver" in
+            ''|*[!0-9.]*) cmp_ver="0" ;;
+            *)            cmp_ver="$local_ver" ;;
+        esac
+
         if [ -z "$remote_ver" ]; then
             echo "Could not reach the release channel; skipping shell update."
         elif [ "$remote_ver" = "$local_ver" ]; then
             echo "Moon Shell already current."
-        elif [ "$(printf '%s\n%s\n' "$local_ver" "$remote_ver" | sort -V | tail -1)" != "$remote_ver" ]; then
+        elif [ "$(printf '%s\n%s\n' "$cmp_ver" "$remote_ver" | sort -V | tail -1)" != "$remote_ver" ]; then
             echo "Installed version is newer than the channel; skipping."
         else
             tmp="$(mktemp -d)"

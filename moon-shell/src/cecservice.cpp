@@ -22,6 +22,23 @@ void onCecKeyPress(void* param, const cec_keypress* key)
                               Q_ARG(bool, key->duration > 0));
 }
 
+// Watch the CEC bus for the TV powering off (Standby) and for our HDMI input
+// being made the active source (Set Stream Path / Active Source), so the
+// console can follow the TV's power state.
+void onCecCommand(void* param, const cec_command* command)
+{
+    auto* self = static_cast<CecService*>(param);
+    int pa = -1;
+    if ((command->opcode == CEC_OPCODE_SET_STREAM_PATH ||
+         command->opcode == CEC_OPCODE_ACTIVE_SOURCE) &&
+        command->parameters.size >= 2) {
+        pa = (command->parameters.data[0] << 8) | command->parameters.data[1];
+    }
+    QMetaObject::invokeMethod(self, "handleCecCommand", Qt::QueuedConnection,
+                              Q_ARG(int, (int)command->opcode),
+                              Q_ARG(int, pa));
+}
+
 } // namespace
 #endif
 
@@ -55,6 +72,7 @@ void CecService::openAdapter()
     auto* callbacks = new ICECCallbacks();
     callbacks->Clear();
     callbacks->keyPress = &onCecKeyPress;
+    callbacks->commandReceived = &onCecCommand;
 
     auto* config = new libcec_configuration();
     config->Clear();
@@ -83,8 +101,14 @@ void CecService::openAdapter()
             return;
         }
 
-        QMetaObject::invokeMethod(this, [this, adapter] {
+        // Our own HDMI physical address, used to recognise when the TV routes
+        // back to this console's input.
+        const cec_logical_addresses la = adapter->GetLogicalAddresses();
+        const int pa = adapter->GetDevicePhysicalAddress(la.primary);
+
+        QMetaObject::invokeMethod(this, [this, adapter, pa] {
             m_adapter = adapter;
+            m_physicalAddress = pa;
             m_available = true;
             emit availableChanged();
         }, Qt::QueuedConnection);
@@ -141,6 +165,35 @@ void CecService::standbyTv()
     if (!m_adapter)
         return;
     static_cast<ICECAdapter*>(m_adapter)->StandbyDevices(CECDEVICE_TV);
+#endif
+}
+
+void CecService::handleCecCommand(int opcode, int physicalAddress)
+{
+#ifdef HAVE_LIBCEC
+    // Only follow the TV's power when the user opted in.
+    if (!m_settings->tvPowerSync())
+        return;
+
+    switch (opcode) {
+    case CEC_OPCODE_STANDBY:
+        // The TV (or the whole HDMI chain) is powering off.
+        emit tvWentToStandby();
+        break;
+    case CEC_OPCODE_SET_STREAM_PATH:
+    case CEC_OPCODE_ACTIVE_SOURCE:
+        // The TV switched to an input. If it's ours, come back; if we can't
+        // tell (unknown address), assume it's us rather than stay dark.
+        if (physicalAddress < 0 || m_physicalAddress < 0 ||
+            physicalAddress == m_physicalAddress)
+            emit tvSelectedThisInput();
+        break;
+    default:
+        break;
+    }
+#else
+    Q_UNUSED(opcode);
+    Q_UNUSED(physicalAddress);
 #endif
 }
 

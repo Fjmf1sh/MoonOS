@@ -95,7 +95,7 @@ FocusScope {
                 spacing: 6
                 visible: BluetoothService.connectedControllerCount > 0
                 anchors.verticalCenter: parent.verticalCenter
-                Text { text: "🎮"; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
+                MIcon { name: "sports_esports"; size: Theme.fontBody; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
                 Text {
                     text: BluetoothService.connectedControllerCount
                     color: Theme.textDim; font.pixelSize: Theme.fontBody
@@ -172,7 +172,7 @@ FocusScope {
 
                     delegate: FocusButton {
                         width: 420; height: 200
-                        icon: "🎮"
+                        icon: "sports_esports"
                         label: modelData.appName
                         sublabel: qsTr("on %1").arg(modelData.hostName)
                         focus: index === 0
@@ -280,9 +280,9 @@ FocusScope {
                 interactive: false
 
                 model: [
-                    { icon: "🔗", label: qsTr("Pair PC"), action: "pair" },
-                    { icon: "⚙", label: qsTr("Settings"), action: "settings" },
-                    { icon: "⏻", label: qsTr("Power"), action: "power" }
+                    { icon: "link", label: qsTr("Pair PC"), action: "pair" },
+                    { icon: "settings", label: qsTr("Settings"), action: "settings" },
+                    { icon: "power_settings_new", label: qsTr("Power"), action: "power" }
                 ]
 
                 delegate: FocusButton {
@@ -311,7 +311,7 @@ FocusScope {
         hints: [
             { button: "A", label: qsTr("Select") },
             { button: "X", label: qsTr("PC options") },
-            { button: "☰", label: qsTr("Navigate") }
+            { button: "gamepad", label: qsTr("Navigate") }
         ]
     }
 }

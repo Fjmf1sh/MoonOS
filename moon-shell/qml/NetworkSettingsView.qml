@@ -78,6 +78,22 @@ FocusScope {
                 }
             }
             Column {
+                Text { text: qsTr("Gateway"); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
+                Text {
+                    text: NetworkService.gateway !== "" ? NetworkService.gateway : "—"
+                    color: Theme.text
+                    font.pixelSize: Theme.fontBody
+                }
+            }
+            Column {
+                Text { text: qsTr("DNS"); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
+                Text {
+                    text: NetworkService.dnsServers.length ? NetworkService.dnsServers.join(", ") : "—"
+                    color: Theme.text
+                    font.pixelSize: Theme.fontBody
+                }
+            }
+            Column {
                 visible: NetworkService.currentSsid !== ""
                 Text { text: qsTr("Signal"); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
                 Text {
@@ -86,6 +102,16 @@ FocusScope {
                     font.pixelSize: Theme.fontBody
                 }
             }
+        }
+
+        // Network hardware address, useful for router reservations / diagnostics.
+        Row {
+            visible: NetworkService.macAddress !== ""
+            spacing: Theme.padSmall
+            Text { text: qsTr("MAC address"); color: Theme.textDim; font.pixelSize: Theme.fontSmall
+                   anchors.verticalCenter: parent.verticalCenter }
+            Text { text: NetworkService.macAddress; color: Theme.text; font.pixelSize: Theme.fontSmall
+                   anchors.verticalCenter: parent.verticalCenter }
         }
 
         Row {
@@ -112,7 +138,7 @@ FocusScope {
                 width: (parent.width - Theme.padSmall) / 2
                 height: 96
                 focus: true
-                icon: NetworkService.wifiEnabled ? "📶" : "🚫"
+                icon: NetworkService.wifiEnabled ? "wifi" : "wifi_off"
                 label: qsTr("Wi-Fi")
                 sublabel: !NetworkService.wifiAvailable ? qsTr("No adapter")
                           : NetworkService.wifiEnabled ? qsTr("On — select to turn off")
@@ -126,7 +152,7 @@ FocusScope {
                 id: scanBtn
                 width: (parent.width - Theme.padSmall) / 2
                 height: 96
-                icon: "🔄"
+                icon: "refresh"
                 label: qsTr("Scan again")
                 sublabel: NetworkService.scanning ? qsTr("Scanning…") : qsTr("Look for networks")
                 KeyNavigation.left: wifiBtn
@@ -138,7 +164,11 @@ FocusScope {
         ListView {
             id: netList
             width: parent.width
-            height: parent.height - y
+            // Reserve space for the HintBar and pad the top/bottom so a focused
+            // row's scale-up and glow aren't clipped at the list edges.
+            height: parent.height - y - 72
+            topMargin: 8
+            bottomMargin: 8
             spacing: Theme.padSmall
             clip: true
             keyNavigationEnabled: true
@@ -155,10 +185,12 @@ FocusScope {
             }
 
             delegate: FocusButton {
-                width: netList.width
+                // Inset so the 1.045 focus scale + glow stay inside the list.
+                width: netList.width - Theme.pad * 4
+                x: Theme.pad * 2
                 height: 100
                 focus: ListView.isCurrentItem
-                icon: modelData.secured ? "🔒" : "📶"
+                icon: modelData.secured ? "lock" : "wifi"
                 label: modelData.ssid
                 sublabel: (modelData.active ? qsTr("Connected") + " · "
                           : modelData.saved ? qsTr("Saved") + " · " : "")

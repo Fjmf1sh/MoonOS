@@ -32,10 +32,36 @@ make -j"$(nproc)"
 
 install -m 755 app/moon-shell /usr/bin/moon-shell
 
+# Stamp a real version in the SAME scheme the release workflow uses
+# (YYYY.MM.DD.N), so the updater can order the installed build against GitHub
+# releases with `sort -V`. Shipping the literal "development" placeholder made
+# every release look older, so consoles never updated. Honour MOONOS_VERSION if
+# a coordinated build passes one in.
+if [ -n "${MOONOS_VERSION:-}" ]; then
+    echo "${MOONOS_VERSION}" > /etc/moonos/version
+else
+    echo "$(date +%Y.%m.%d).0" > /etc/moonos/version
+fi
+echo "moon-shell version: $(cat /etc/moonos/version)"
+
 # SDL controller mappings shipped with moonlight-qt (community database)
 install -d /usr/share/moonos
 install -m 644 /opt/src/moonlight-qt/app/SDL_GameControllerDB/gamecontrollerdb.txt \
     /usr/share/moonos/gamecontrollerdb.txt || true
+
+# ---- Material Icons font ---------------------------------------------------
+# The shell renders all UI glyphs from the Google "Material Icons" font (via
+# MIcon.qml ligatures) instead of emoji. Install it system-wide so fontconfig
+# resolves the "Material Icons" family; if the download fails the build still
+# succeeds (icons just fall back to tofu) rather than blocking the whole image.
+install -d /usr/share/fonts/truetype/material-icons
+if curl -fsSL --retry 3 \
+    -o /usr/share/fonts/truetype/material-icons/MaterialIcons-Regular.ttf \
+    "https://github.com/google/material-design-icons/raw/master/font/MaterialIcons-Regular.ttf"; then
+    fc-cache -f /usr/share/fonts/truetype/material-icons || true
+else
+    echo "WARN: could not fetch Material Icons font; UI icons may be missing" >&2
+fi
 
 # ---- pin runtime libraries -------------------------------------------------
 # ld.so needs every NEEDED library of moon-shell AND of the Qt plugins/QML

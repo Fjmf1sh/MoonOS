@@ -15,6 +15,7 @@ class MoonSettings : public QObject
     Q_PROPERTY(bool setupComplete READ setupComplete WRITE setSetupComplete NOTIFY setupCompleteChanged)
     Q_PROPERTY(int safeAreaPct READ safeAreaPct WRITE setSafeAreaPct NOTIFY safeAreaPctChanged)
     Q_PROPERTY(bool cecEnabled READ cecEnabled WRITE setCecEnabled NOTIFY cecEnabledChanged)
+    Q_PROPERTY(bool tvPowerSync READ tvPowerSync WRITE setTvPowerSync NOTIFY tvPowerSyncChanged)
     Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY audioDeviceChanged)
     Q_PROPERTY(QVariantList recentGames READ recentGames NOTIFY recentGamesChanged)
     Q_PROPERTY(bool developerMode READ developerMode NOTIFY developerModeChanged)
@@ -33,6 +34,9 @@ public:
 
     bool cecEnabled() const;
     void setCecEnabled(bool value);
+
+    bool tvPowerSync() const;
+    void setTvPowerSync(bool value);
 
     QString audioDevice() const;
     void setAudioDevice(const QString& device);
@@ -60,6 +64,7 @@ signals:
     void setupCompleteChanged();
     void safeAreaPctChanged();
     void cecEnabledChanged();
+    void tvPowerSyncChanged();
     void audioDeviceChanged();
     void recentGamesChanged();
     void developerModeChanged();

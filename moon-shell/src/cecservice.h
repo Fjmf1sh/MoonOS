@@ -34,9 +34,14 @@ public:
 
     // Invoked (queued) from the libcec callback thread.
     Q_INVOKABLE void handleCecKey(int cecCode, bool isRelease);
+    Q_INVOKABLE void handleCecCommand(int opcode, int physicalAddress);
 
 signals:
     void availableChanged();
+    // Fired (only while "follow TV power" is on) when the TV broadcasts that it
+    // is turning off, and when this console's HDMI input is selected again.
+    void tvWentToStandby();
+    void tvSelectedThisInput();
 
 private:
     void openAdapter();
@@ -48,4 +53,5 @@ private:
     void* m_adapter = nullptr; // CEC::ICECAdapter* (opaque to keep the header libcec-free)
     void* m_callbacks = nullptr;
     void* m_config = nullptr;
+    int m_physicalAddress = -1; // our HDMI physical address, for stream-path matching
 };

@@ -23,7 +23,8 @@ SOURCES += \
     $$PWD/src/bluetoothservice.cpp \
     $$PWD/src/displayservice.cpp \
     $$PWD/src/moonsystem.cpp \
-    $$PWD/src/cecservice.cpp
+    $$PWD/src/cecservice.cpp \
+    $$PWD/src/inputservice.cpp
 
 HEADERS += \
     $$PWD/src/moonregister.h \
@@ -32,7 +33,8 @@ HEADERS += \
     $$PWD/src/bluetoothservice.h \
     $$PWD/src/displayservice.h \
     $$PWD/src/moonsystem.h \
-    $$PWD/src/cecservice.h
+    $$PWD/src/cecservice.h \
+    $$PWD/src/inputservice.h
 
 RESOURCES += $$PWD/moon.qrc
 

@@ -36,6 +36,14 @@ FocusScope {
         border.width: 2
         Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
+        // Clicking anywhere on the row focuses it (and a click on the value area
+        // steps forward), so the picker responds to a mouse as well as a pad.
+        // The ‹ › arrows have their own MouseAreas layered on top of this.
+        MouseArea {
+            anchors.fill: parent
+            onClicked: { root.forceActiveFocus(); root.step(1) }
+        }
+
         Column {
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left

@@ -8,7 +8,7 @@ FocusScope {
 
     property string label: ""
     property string sublabel: ""
-    property string icon: ""       // emoji/text glyph rendered large
+    property string icon: ""       // Material Icons ligature name (see MIcon)
     property bool destructive: false
     property bool enabled: true
     property alias contentItem: extraContent.data
@@ -55,10 +55,11 @@ FocusScope {
             anchors.rightMargin: Theme.pad
             spacing: Theme.pad
 
-            Text {
+            MIcon {
                 visible: root.icon !== ""
-                text: root.icon
-                font.pixelSize: Theme.fontH1
+                name: root.icon
+                size: Theme.fontH1
+                color: root.destructive ? Theme.danger : Theme.text
                 anchors.verticalCenter: parent.verticalCenter
             }
 

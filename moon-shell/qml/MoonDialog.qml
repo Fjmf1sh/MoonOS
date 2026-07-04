@@ -29,9 +29,14 @@ Popup {
         open()
     }
 
+    // 3+ choices stack vertically (power menu etc.); 1–2 sit side by side.
+    readonly property bool stackButtons: buttons.length > 2
+
     parent: Overlay.overlay
     anchors.centerIn: parent
     width: Math.min(parent ? parent.width * 0.6 : 900, 980)
+    // Never taller than the screen — the button area scrolls if it has to.
+    height: Math.min(implicitHeight, parent ? parent.height * 0.9 : 700)
     modal: true
     focus: true
     closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape
@@ -80,31 +85,70 @@ Popup {
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
-        Row {
-            spacing: Theme.padSmall
-            anchors.horizontalCenter: parent.horizontalCenter
+        // The buttons live in a clipped Flickable so a long menu (e.g. power
+        // options) scrolls inside the dialog instead of spilling past its edge.
+        Flickable {
+            id: buttonScroll
             visible: !root.busy
+            width: parent.width
+            height: Math.min(buttonFlow.height,
+                             (root.parent ? root.parent.height * 0.9 : 700) - 220)
+            contentHeight: buttonFlow.height
+            contentWidth: width
+            clip: true
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
 
-            Repeater {
-                id: buttonRepeater
-                model: root.buttons
-                FocusButton {
-                    width: 260
-                    height: 76
-                    label: modelData.label
-                    destructive: modelData.destructive === true
-                    focus: index === 0
-                    KeyNavigation.left: index > 0 ? buttonRepeater.itemAt(index - 1) : null
-                    KeyNavigation.right: index < root.buttons.length - 1 ? buttonRepeater.itemAt(index + 1) : null
-                    onActivated: {
-                        root.close()
-                        if (modelData.action)
-                            modelData.action()
+            // Vertical stack for 3+ options, horizontal row for a yes/no.
+            Grid {
+                id: buttonFlow
+                anchors.horizontalCenter: parent.horizontalCenter
+                columns: root.stackButtons ? 1 : Math.max(1, root.buttons.length)
+                spacing: Theme.padSmall
+
+                Repeater {
+                    id: buttonRepeater
+                    model: root.buttons
+                    FocusButton {
+                        width: root.stackButtons ? buttonScroll.width : 260
+                        height: 76
+                        label: modelData.label
+                        destructive: modelData.destructive === true
+                        // Vertical menus navigate up/down; a row navigates left/right.
+                        KeyNavigation.up: root.stackButtons && index > 0
+                                          ? buttonRepeater.itemAt(index - 1) : null
+                        KeyNavigation.down: root.stackButtons && index < root.buttons.length - 1
+                                            ? buttonRepeater.itemAt(index + 1) : null
+                        KeyNavigation.left: !root.stackButtons && index > 0
+                                            ? buttonRepeater.itemAt(index - 1) : null
+                        KeyNavigation.right: !root.stackButtons && index < root.buttons.length - 1
+                                             ? buttonRepeater.itemAt(index + 1) : null
+                        // Keep the focused button in view when the list scrolls.
+                        onActiveFocusChanged: if (activeFocus) {
+                            if (y < buttonScroll.contentY)
+                                buttonScroll.contentY = y
+                            else if (y + height > buttonScroll.contentY + buttonScroll.height)
+                                buttonScroll.contentY = y + height - buttonScroll.height
+                        }
+                        onActivated: {
+                            root.close()
+                            if (modelData.action)
+                                modelData.action()
+                        }
                     }
                 }
             }
         }
     }
 
-    onOpened: contentItem.forceActiveFocus()
+    // Give the FIRST button active focus every time the dialog opens. Focusing
+    // the content Column instead (the old behaviour) left the outline on a
+    // button that had no active focus, so the second open looked "dead".
+    onOpened: {
+        var first = buttonRepeater.itemAt(0)
+        if (first)
+            first.forceActiveFocus()
+        else
+            contentItem.forceActiveFocus()
+    }
 }

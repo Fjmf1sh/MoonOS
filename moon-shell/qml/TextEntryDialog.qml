@@ -71,7 +71,11 @@ Popup {
     }
 
     contentItem: Column {
+        id: fieldColumn
         spacing: Theme.pad
+        // Hold focus (and so receive the physical-keyboard fallback below) when
+        // the on-screen keyboard is hidden.
+        focus: true
 
         // Physical-keyboard fallback: bubbled keystrokes are typed into the
         // field no matter which sub-control holds focus. Synthetic controller
@@ -82,7 +86,14 @@ Popup {
             var code = event.text.charCodeAt(0)
             if (code === 13 || code === 10) { root.submit(); event.accepted = true }
             else if (code === 8 || code === 127) { root.value = root.value.slice(0, -1); event.accepted = true }
-            else if (code >= 32) { root.value += event.text; event.accepted = true }
+            else if (code >= 32) {
+                // Apply Shift ourselves — some console keymaps don't fold it into
+                // event.text, so Shift+letter would otherwise stay lowercase.
+                var ch = event.text
+                if ((event.modifiers & Qt.ShiftModifier) && ch >= "a" && ch <= "z")
+                    ch = ch.toUpperCase()
+                root.value += ch; event.accepted = true
+            }
         }
 
         Text {
@@ -102,7 +113,7 @@ Popup {
                 id: revealBtn
                 visible: root.isPassword
                 width: 220; height: 64
-                icon: root.revealed ? "🙈" : "👁"
+                icon: root.revealed ? "visibility_off" : "visibility"
                 label: root.revealed ? qsTr("Hide") : qsTr("Show")
                 KeyNavigation.right: pasteBtn.visible ? pasteBtn : null
                 KeyNavigation.down: osk
@@ -113,7 +124,7 @@ Popup {
                 id: pasteBtn
                 visible: MoonSettings.developerMode
                 width: 220; height: 64
-                icon: "📋"
+                icon: "content_paste"
                 label: qsTr("Paste")
                 KeyNavigation.left: revealBtn.visible ? revealBtn : null
                 KeyNavigation.down: osk
@@ -171,10 +182,29 @@ Popup {
             }
         }
 
+        // Hint shown in place of the on-screen keyboard once a real keyboard is
+        // in use — the field and Show/Hide controls stay live above.
+        Text {
+            visible: !osk.visible
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: qsTr("Keyboard detected — just type. Press a controller button for the on-screen keyboard.")
+            color: Theme.textDim
+            font.pixelSize: Theme.fontSmall
+            horizontalAlignment: Text.AlignHCenter
+        }
+
         OnScreenKeyboard {
             id: osk
             anchors.horizontalCenter: parent.horizontalCenter
             focus: true
+            // Step aside for a physical keyboard; reappear on controller input.
+            visible: !InputService.physicalKeyboard
+            onVisibleChanged: {
+                if (visible)
+                    osk.forceActiveFocus()
+                else
+                    fieldColumn.forceActiveFocus()
+            }
             onKeyPressed: function(text) { root.value += text }
             onBackspace: root.value = root.value.slice(0, -1)
             onAccepted: root.submit()
@@ -194,11 +224,16 @@ Popup {
             anchors.horizontalCenter: parent.horizontalCenter
             hints: [
                 { button: "A", label: qsTr("Type") },
-                { button: "↑", label: qsTr("Options") },
+                { button: "keyboard_arrow_up", label: qsTr("Options") },
                 { button: "B", label: qsTr("Cancel") }
             ]
         }
     }
 
-    onOpened: osk.forceActiveFocus()
+    onOpened: {
+        if (osk.visible)
+            osk.forceActiveFocus()
+        else
+            fieldColumn.forceActiveFocus()
+    }
 }

@@ -14,6 +14,28 @@ FocusScope {
     readonly property bool backLocked: true
 
     property int step: 0
+
+    // The focusable control that owns each step's content (if any). Every step
+    // gets the SAME navigation model: focus starts on this control, Down moves
+    // to the nav buttons, Up returns here. Steps with no content focus the
+    // Continue button directly. This keeps navigation identical on every page.
+    property Item stepPrimary: {
+        switch (steps[step].key) {
+        case "controller": return pairManualBtn
+        case "network":    return wifiSetupBtn
+        case "display":    return safeSlider
+        case "audio":      return audioOption
+        case "pair":       return pairPcBtn
+        default:           return null
+        }
+    }
+    function focusStep() {
+        if (stepPrimary && stepPrimary.visible && stepPrimary.enabled)
+            stepPrimary.forceActiveFocus()
+        else
+            nextBtn.forceActiveFocus()
+    }
+
     readonly property var steps: [
         { key: "welcome",    title: qsTr("Welcome to Moon OS") },
         { key: "controller", title: qsTr("Connect a controller") },
@@ -34,13 +56,13 @@ FocusScope {
         // Ethernet users don't need the Wi-Fi step
         if (steps[step].key === "network" && NetworkService.ethernetConnected)
             step++
-        nextBtn.forceActiveFocus()
+        focusStep()
     }
 
     function back() {
         if (step > 0)
             step--
-        nextBtn.forceActiveFocus()
+        focusStep()
     }
 
     // Auto-onboard controllers for the entire wizard: from the very first
@@ -48,7 +70,11 @@ FocusScope {
     // new controller held in pairing mode. This solves the chicken-and-egg
     // of needing input to set up input — the user just holds the pair button.
     // (USB controllers work immediately via SDL and need nothing here.)
-    Component.onCompleted: BluetoothService.startControllerAutoConnect()
+    Component.onCompleted: {
+        BluetoothService.startControllerAutoConnect()
+        // Land focus on the first page's control once the scene is laid out.
+        Qt.callLater(focusStep)
+    }
     Component.onDestruction: BluetoothService.stopControllerAutoConnect()
 
     Column {
@@ -90,10 +116,11 @@ FocusScope {
                 anchors.centerIn: parent
                 width: parent.width
                 spacing: Theme.pad
-                Text {
+                MIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "🌕"
-                    font.pixelSize: 110
+                    name: "dark_mode"
+                    size: 110
+                    color: Theme.accent
                 }
                 Text {
                     width: parent.width
@@ -114,10 +141,11 @@ FocusScope {
 
                 readonly property bool haveController: BluetoothService.connectedControllerCount > 0
 
-                Text {
+                MIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: parent.haveController ? "🎮" : "🔍"
-                    font.pixelSize: 90
+                    name: parent.haveController ? "sports_esports" : "search"
+                    size: 90
+                    color: parent.haveController ? Theme.success : Theme.accent
                 }
                 Text {
                     width: parent.width
@@ -155,6 +183,7 @@ FocusScope {
                 }
 
                 FocusButton {
+                    id: pairManualBtn
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 440; height: 90
                     label: qsTr("Pair manually")
@@ -170,10 +199,11 @@ FocusScope {
                 anchors.centerIn: parent
                 width: parent.width
                 spacing: Theme.pad
-                Text {
+                MIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "📡"
-                    font.pixelSize: 90
+                    name: "wifi"
+                    size: 90
+                    color: Theme.accent
                 }
                 Text {
                     width: parent.width
@@ -187,6 +217,7 @@ FocusScope {
                     wrapMode: Text.Wrap
                 }
                 FocusButton {
+                    id: wifiSetupBtn
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 440; height: 90
                     label: qsTr("Set up Wi-Fi")
@@ -210,13 +241,13 @@ FocusScope {
                     wrapMode: Text.Wrap
                 }
                 SliderRow {
+                    id: safeSlider
                     width: parent.width
                     label: qsTr("Safe area")
                     from: 80; to: 100; step: 1
                     suffix: "%"
                     value: MoonSettings.safeAreaPct
                     onChanged: function(v) { MoonSettings.safeAreaPct = v }
-                    focus: true
                     KeyNavigation.down: nextBtn
                 }
             }
@@ -235,6 +266,7 @@ FocusScope {
                     font.pixelSize: Theme.fontBody
                 }
                 OptionRow {
+                    id: audioOption
                     width: parent.width
                     label: qsTr("Sound output")
                     options: {
@@ -257,10 +289,11 @@ FocusScope {
                 anchors.centerIn: parent
                 width: parent.width
                 spacing: Theme.pad
-                Text {
+                MIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "🖥"
-                    font.pixelSize: 90
+                    name: "desktop_windows"
+                    size: 90
+                    color: Theme.accent
                 }
                 Text {
                     width: parent.width
@@ -271,6 +304,7 @@ FocusScope {
                     wrapMode: Text.Wrap
                 }
                 FocusButton {
+                    id: pairPcBtn
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 440; height: 90
                     label: qsTr("Pair my PC")
@@ -285,10 +319,11 @@ FocusScope {
                 anchors.centerIn: parent
                 width: parent.width
                 spacing: Theme.pad
-                Text {
+                MIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "🚀"
-                    font.pixelSize: 110
+                    name: "rocket_launch"
+                    size: 110
+                    color: Theme.accent
                 }
                 Text {
                     width: parent.width
@@ -319,8 +354,9 @@ FocusScope {
                 label: wizard.step === wizard.steps.length - 1 ? qsTr("Start")
                      : wizard.step === 0 ? qsTr("Let's go")
                      : qsTr("Continue")
-                focus: true
                 KeyNavigation.left: backBtn.visible ? backBtn : null
+                // Up returns to the step's content control (same on every page).
+                KeyNavigation.up: wizard.stepPrimary
                 onActivated: wizard.next()
             }
         }
@@ -332,7 +368,7 @@ FocusScope {
         anchors.horizontalCenter: parent.horizontalCenter
         hints: [
             { button: "A", label: qsTr("Select") },
-            { button: "☰", label: qsTr("Navigate") }
+            { button: "gamepad", label: qsTr("Navigate") }
         ]
     }
 }

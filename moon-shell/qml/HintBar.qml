@@ -15,6 +15,10 @@ Row {
         model: root.hints
         Row {
             spacing: 10
+            // A single-letter hint (A/B/X/Y) is a controller face button, drawn
+            // as a lettered chip. Anything longer is a Material Icons ligature
+            // name (e.g. "gamepad", "swap_horiz") and is drawn as an icon.
+            readonly property bool isFaceButton: String(modelData.button).length === 1
             Rectangle {
                 width: 40; height: 40; radius: 20
                 color: Theme.panelHigh
@@ -22,11 +26,19 @@ Row {
                 border.width: 1
                 anchors.verticalCenter: parent.verticalCenter
                 Text {
+                    visible: parent.parent.isFaceButton
                     anchors.centerIn: parent
                     text: modelData.button
                     color: Theme.text
                     font.pixelSize: Theme.fontSmall
                     font.weight: Font.Bold
+                }
+                MIcon {
+                    visible: !parent.parent.isFaceButton
+                    anchors.centerIn: parent
+                    name: modelData.button
+                    size: Theme.fontBody
+                    color: Theme.text
                 }
             }
             Text {

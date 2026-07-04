@@ -51,7 +51,7 @@ FocusScope {
             anchors.margins: Theme.pad
             spacing: 8
 
-            Text { text: "🖥"; font.pixelSize: 56 }
+            MIcon { name: "desktop_windows"; size: 56; color: Theme.text }
 
             Text {
                 text: root.name

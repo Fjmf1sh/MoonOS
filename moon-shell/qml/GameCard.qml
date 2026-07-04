@@ -51,10 +51,11 @@ FocusScope {
                     GradientStop { position: 0.0; color: Theme.panelHigh }
                     GradientStop { position: 1.0; color: Theme.panel }
                 }
-                Text {
+                MIcon {
                     anchors.centerIn: parent
-                    text: "🎮"
-                    font.pixelSize: 64
+                    name: "sports_esports"
+                    size: 64
+                    color: Theme.textDim
                     opacity: 0.6
                 }
             }

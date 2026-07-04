@@ -2,6 +2,9 @@
     <qresource prefix="/moon">
         <file>qml/qmldir</file>
         <file>qml/Theme.qml</file>
+        <file>qml/Icons.qml</file>
+        <file>qml/MIcon.qml</file>
+        <file>qml/Dropdown.qml</file>
         <file>qml/MoonRoot.qml</file>
         <file>qml/SpaceBackdrop.qml</file>
         <file>qml/HintBar.qml</file>

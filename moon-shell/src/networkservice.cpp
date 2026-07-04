@@ -146,22 +146,49 @@ void NetworkService::refreshState()
         m_ethernetConnected = (state == kDeviceStateActivated);
     }
 
-    // IP address of the primary connection
+    // IP details of the primary connection: address, gateway, DNS servers.
     m_ipAddress.clear();
+    m_gateway.clear();
+    m_dnsServers.clear();
+    QString primaryDevice;
     const QString primary = unwrapDBus(getProp(kNmPath, kNmIface, QStringLiteral("PrimaryConnection"))).toString();
     if (!primary.isEmpty() && primary != QStringLiteral("/")) {
+        const QString activeIface = QStringLiteral("org.freedesktop.NetworkManager.Connection.Active");
+        // Remember which device carries the primary connection so we can read
+        // its hardware (MAC) address below.
+        const QVariantList devs = unwrapDBus(getProp(primary, activeIface, QStringLiteral("Devices"))).toList();
+        if (!devs.isEmpty())
+            primaryDevice = devs.first().toString();
+
         const QString ip4Path = unwrapDBus(
-            getProp(primary, QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"),
-                    QStringLiteral("Ip4Config"))).toString();
+            getProp(primary, activeIface, QStringLiteral("Ip4Config"))).toString();
         if (!ip4Path.isEmpty() && ip4Path != QStringLiteral("/")) {
-            const QVariant addrData = getProp(ip4Path,
-                QStringLiteral("org.freedesktop.NetworkManager.IP4Config"),
-                QStringLiteral("AddressData"));
-            const QVariantList addrs = unwrapDBus(addrData).toList();
+            const QString ip4Iface = QStringLiteral("org.freedesktop.NetworkManager.IP4Config");
+            const QVariantList addrs =
+                unwrapDBus(getProp(ip4Path, ip4Iface, QStringLiteral("AddressData"))).toList();
             if (!addrs.isEmpty())
                 m_ipAddress = addrs.first().toMap().value(QStringLiteral("address")).toString();
+
+            m_gateway = getProp(ip4Path, ip4Iface, QStringLiteral("Gateway")).toString();
+
+            // NameserverData is a list of { address, ... } maps (NM >= 1.14).
+            const QVariantList nsData =
+                unwrapDBus(getProp(ip4Path, ip4Iface, QStringLiteral("NameserverData"))).toList();
+            for (const QVariant& ns : nsData) {
+                const QString addr = ns.toMap().value(QStringLiteral("address")).toString();
+                if (!addr.isEmpty())
+                    m_dnsServers.append(addr);
+            }
         }
     }
+
+    // MAC address of the active interface (falls back to the Wi-Fi device).
+    m_macAddress.clear();
+    const QString macDevice = !primaryDevice.isEmpty() ? primaryDevice
+                            : !m_ethernetDevice.isEmpty() ? m_ethernetDevice
+                            : m_wifiDevice;
+    if (!macDevice.isEmpty())
+        m_macAddress = getProp(macDevice, kDeviceIface, QStringLiteral("HwAddress")).toString();
 
     // SSID + signal of the active access point
     m_currentSsid.clear();
@@ -247,10 +274,15 @@ void NetworkService::refreshAccessPoints()
         entry[QStringLiteral("active")] = it->active;
         list.append(entry);
     }
+    // Order: the connected network first, then remembered (saved) networks,
+    // then everything else — each tier strongest-signal-first — so the networks
+    // people actually use sit at the top instead of buried in the scan list.
     std::sort(list.begin(), list.end(), [](const QVariant& a, const QVariant& b) {
         const auto ma = a.toMap(), mb = b.toMap();
         if (ma[QStringLiteral("active")].toBool() != mb[QStringLiteral("active")].toBool())
             return ma[QStringLiteral("active")].toBool();
+        if (ma[QStringLiteral("saved")].toBool() != mb[QStringLiteral("saved")].toBool())
+            return ma[QStringLiteral("saved")].toBool();
         return ma[QStringLiteral("strength")].toInt() > mb[QStringLiteral("strength")].toInt();
     });
 

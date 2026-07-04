@@ -71,6 +71,20 @@ void MoonSettings::setCecEnabled(bool value)
     emit cecEnabledChanged();
 }
 
+bool MoonSettings::tvPowerSync() const
+{
+    return m_settings.value(QStringLiteral("tvPowerSync"), false).toBool();
+}
+
+void MoonSettings::setTvPowerSync(bool value)
+{
+    if (value == tvPowerSync())
+        return;
+    m_settings.setValue(QStringLiteral("tvPowerSync"), value);
+    m_settings.sync();
+    emit tvPowerSyncChanged();
+}
+
 QString MoonSettings::audioDevice() const
 {
     return m_settings.value(QStringLiteral("audioDevice")).toString();

@@ -116,6 +116,35 @@ ApplicationWindow {
     MoonDialog { id: errorDialog }
     TextEntryDialog { id: textEntry }
 
+    // ---- TV-follow standby (HDMI-CEC) ---------------------------------------
+    // With "Standby with my TV" on, a TV power-off blanks the console; selecting
+    // this input again (or any key/controller/tap) brings it back. This replaces
+    // the old manual "Wake TV" button you couldn't press when the TV was off.
+    Rectangle {
+        id: standbyScreen
+        anchors.fill: parent
+        color: "black"
+        visible: false
+        z: 100000
+
+        function sleep() { visible = true; forceActiveFocus() }
+        function wake() {
+            if (!visible) return
+            visible = false
+            stackView.forceActiveFocus()
+        }
+
+        focus: visible
+        Keys.onPressed: function(event) { standbyScreen.wake(); event.accepted = true }
+        MouseArea { anchors.fill: parent; onClicked: standbyScreen.wake() }
+    }
+
+    Connections {
+        target: CecService
+        function onTvWentToStandby() { standbyScreen.sleep() }
+        function onTvSelectedThisInput() { standbyScreen.wake() }
+    }
+
     // ---- gamepad focus gating -----------------------------------------------
 
     // The SDL gamepad->key-event pump in moonlight-qt only polls while the

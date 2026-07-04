@@ -94,6 +94,37 @@ FocusScope {
             font.weight: Font.Bold
         }
 
+        // Warn up front when there's no network — pairing and streaming both
+        // need one, and silently failing to find PCs is confusing.
+        Rectangle {
+            width: parent.width
+            height: warnRow.height + Theme.pad
+            visible: !NetworkService.online
+            radius: Theme.radiusSmall
+            color: "#33ff6b81"
+            border.color: Theme.danger
+            border.width: 1
+
+            Row {
+                id: warnRow
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.pad
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.pad
+                spacing: Theme.padSmall
+                MIcon { name: "wifi_off"; color: Theme.danger; anchors.verticalCenter: parent.verticalCenter }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 60
+                    text: qsTr("No internet connection. Connect to a network first — your PC and this console must be on the same network to pair.")
+                    color: Theme.text
+                    font.pixelSize: Theme.fontBody
+                    wrapMode: Text.Wrap
+                }
+            }
+        }
+
         Row {
             spacing: Theme.padSmall
             MoonSpinner { width: 36; height: 36; anchors.verticalCenter: parent.verticalCenter }
@@ -119,7 +150,7 @@ FocusScope {
             delegate: FocusButton {
                 width: hostList.width
                 height: 110
-                icon: "🖥"
+                icon: "desktop_windows"
                 label: model.name
                 sublabel: model.paired
                           ? qsTr("Already paired — select to test the connection")
@@ -145,7 +176,7 @@ FocusScope {
             id: manualRow
             width: parent.width
             height: 110
-            icon: "⌨"
+            icon: "keyboard"
             label: qsTr("Add PC by IP address")
             sublabel: qsTr("Use this if your PC doesn't appear automatically")
             KeyNavigation.up: hostList

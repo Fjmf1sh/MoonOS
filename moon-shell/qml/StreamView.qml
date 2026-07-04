@@ -169,10 +169,11 @@ FocusScope {
             spacing: Theme.pad
             width: parent.width * 0.6
 
-            Text {
+            MIcon {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "🌑"
-                font.pixelSize: 80
+                name: "dark_mode"
+                size: 80
+                color: Theme.accent
             }
 
             Text {

@@ -20,6 +20,9 @@ class NetworkService : public QObject
     Q_PROPERTY(bool ethernetConnected READ ethernetConnected NOTIFY stateChanged)
     Q_PROPERTY(bool online READ online NOTIFY stateChanged)
     Q_PROPERTY(QString ipAddress READ ipAddress NOTIFY stateChanged)
+    Q_PROPERTY(QString gateway READ gateway NOTIFY stateChanged)
+    Q_PROPERTY(QStringList dnsServers READ dnsServers NOTIFY stateChanged)
+    Q_PROPERTY(QString macAddress READ macAddress NOTIFY stateChanged)
     Q_PROPERTY(QString currentSsid READ currentSsid NOTIFY stateChanged)
     Q_PROPERTY(int signalStrength READ signalStrength NOTIFY stateChanged)
     Q_PROPERTY(QVariantList networks READ networks NOTIFY networksChanged)
@@ -35,6 +38,9 @@ public:
     bool ethernetConnected() const { return m_ethernetConnected; }
     bool online() const { return m_online; }
     QString ipAddress() const { return m_ipAddress; }
+    QString gateway() const { return m_gateway; }
+    QStringList dnsServers() const { return m_dnsServers; }
+    QString macAddress() const { return m_macAddress; }
     QString currentSsid() const { return m_currentSsid; }
     int signalStrength() const { return m_signalStrength; }
     QVariantList networks() const { return m_networks; }
@@ -73,6 +79,9 @@ private:
     bool m_ethernetConnected = false;
     bool m_online = false;
     QString m_ipAddress;
+    QString m_gateway;
+    QStringList m_dnsServers;
+    QString m_macAddress;
     QString m_currentSsid;
     int m_signalStrength = 0;
     QVariantList m_networks;

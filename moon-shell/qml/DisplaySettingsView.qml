@@ -10,7 +10,7 @@ SettingsScaffold {
 
     Component.onCompleted: DisplayService.refresh()
 
-    OptionRow {
+    Dropdown {
         id: modeRow
         label: qsTr("Screen resolution")
         sublabel: DisplayService.pendingMode !== ""
@@ -60,7 +60,7 @@ SettingsScaffold {
         onChanged: function(v) { MoonSettings.safeAreaPct = v }
     }
 
-    OptionRow {
+    Dropdown {
         label: qsTr("Sound output")
         options: {
             var names = []
@@ -90,8 +90,16 @@ SettingsScaffold {
         onToggled: function(v) { MoonSettings.cecEnabled = v }
     }
 
+    ToggleRow {
+        label: qsTr("Standby with my TV")
+        sublabel: qsTr("Console sleeps when the TV turns off and wakes when you switch back to it")
+        enabled: MoonSettings.cecEnabled
+        checked: MoonSettings.tvPowerSync
+        onToggled: function(v) { MoonSettings.tvPowerSync = v }
+    }
+
     ActionRow {
-        label: qsTr("Wake TV and switch input")
+        label: qsTr("Wake TV / switch to this input now")
         sublabel: qsTr("Sends an HDMI-CEC power-on to the TV")
         enabled: MoonSettings.cecEnabled
         onActivated: CecService.powerOnTv()

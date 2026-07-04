@@ -6,6 +6,7 @@
 #include "displayservice.h"
 #include "moonsystem.h"
 #include "cecservice.h"
+#include "inputservice.h"
 
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -20,6 +21,7 @@ void registerTypes(QQmlApplicationEngine* engine)
     auto* display   = new DisplayService(settings, engine);
     auto* system    = new MoonSystem(settings, engine);
     auto* cec       = new CecService(settings, engine);
+    auto* input     = new InputService(engine);
 
     qmlRegisterSingletonInstance("MoonOS", 1, 0, "MoonSettings",  settings);
     qmlRegisterSingletonInstance("MoonOS", 1, 0, "NetworkService", network);
@@ -27,6 +29,7 @@ void registerTypes(QQmlApplicationEngine* engine)
     qmlRegisterSingletonInstance("MoonOS", 1, 0, "DisplayService", display);
     qmlRegisterSingletonInstance("MoonOS", 1, 0, "MoonSystem", system);
     qmlRegisterSingletonInstance("MoonOS", 1, 0, "CecService", cec);
+    qmlRegisterSingletonInstance("MoonOS", 1, 0, "InputService", input);
 
     // Apply the persisted audio output before any stream starts. SDL's ALSA
     // backend reads AUDIODEV when the audio device is opened at stream start.

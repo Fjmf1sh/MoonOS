@@ -11,22 +11,23 @@ Item {
     anchors.fill: parent
 
     // ---- moon pose ---------------------------------------------------------
-    // Each pose is a fraction of the screen + a scale. nextPose() advances
-    // through them so the moon "shifts around" as you navigate.
+    // Each pose is just a screen position — the moon keeps ONE constant size and
+    // slides straight to the next spot when you navigate. No grow/shrink; it's a
+    // moon, not a stress ball.
     readonly property var poses: [
-        { x: 0.85, y: 0.15, s: 1.00 },
-        { x: 0.16, y: 0.20, s: 0.72 },
-        { x: 0.90, y: 0.55, s: 0.62 },
-        { x: 0.13, y: 0.80, s: 0.85 },
-        { x: 0.50, y: 0.12, s: 0.55 },
-        { x: 0.82, y: 0.82, s: 0.70 }
+        { x: 0.85, y: 0.15 },
+        { x: 0.16, y: 0.20 },
+        { x: 0.90, y: 0.55 },
+        { x: 0.13, y: 0.80 },
+        { x: 0.50, y: 0.12 },
+        { x: 0.82, y: 0.82 }
     ]
     property int poseIndex: 0
     function nextPose() { poseIndex = (poseIndex + 1) % poses.length }
 
     readonly property real moonCenterX: width * poses[poseIndex].x
     readonly property real moonCenterY: height * poses[poseIndex].y
-    readonly property real moonScale: poses[poseIndex].s
+    readonly property real moonScale: 0.78   // fixed size for every pose
 
     // ---- gradient sky ------------------------------------------------------
     Rectangle {
@@ -139,9 +140,9 @@ Item {
         y: backdrop.moonCenterY - height / 2
         z: 2
 
-        Behavior on x { NumberAnimation { duration: 750; easing.type: Easing.InOutCubic } }
-        Behavior on y { NumberAnimation { duration: 750; easing.type: Easing.InOutCubic } }
-        Behavior on width { NumberAnimation { duration: 750; easing.type: Easing.InOutCubic } }
+        // Quick, direct slide at a constant size — position only animates.
+        Behavior on x { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
 
         // Soft glow (layered translucent circles — no GraphicalEffects dep)
         Repeater {

@@ -26,8 +26,12 @@ DisplayService::DisplayService(MoonSettings* settings, QObject* parent)
 
 QString DisplayService::kmsConfigPath() const
 {
+    // Write the staged KMS config into the shell-owned, persistent state dir
+    // (/var/lib/moonos). The old /etc/moonos location is root-owned, so the
+    // unprivileged "moon" user could not write it — the resolution change
+    // silently failed to save. start-shell.sh reads this same path on restart.
     return qEnvironmentVariable("MOONOS_KMS_CONFIG",
-                                QStringLiteral("/etc/moonos/eglfs-kms.json"));
+                                MoonSettings::stateDir() + QStringLiteral("/eglfs-kms.json"));
 }
 
 void DisplayService::refresh()

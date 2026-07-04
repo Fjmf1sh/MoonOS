@@ -13,8 +13,10 @@ FocusScope {
     signal activated()
 
     width: ListView.view ? ListView.view.width : 900
-    height: 96
-    focus: ListView.isCurrentItem
+    // Collapse to nothing when hidden (e.g. the dev-only "View logs" row) so a
+    // hidden row can't be focused, clicked, or land under a D-pad press.
+    height: visible ? 96 : 0
+    focus: visible && ListView.isCurrentItem
     opacity: enabled ? 1.0 : 0.4
 
     Keys.onReturnPressed: if (enabled && !busy) activated()

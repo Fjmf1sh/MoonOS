@@ -66,7 +66,7 @@ FocusScope {
         anchors.bottomMargin: Theme.pad
         anchors.horizontalCenter: parent.horizontalCenter
         hints: [
-            { button: "☰", label: qsTr("Scroll") },
+            { button: "gamepad", label: qsTr("Scroll") },
             { button: "B", label: qsTr("Back") }
         ]
     }
